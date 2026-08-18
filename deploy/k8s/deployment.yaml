@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: igozhang
+  namespace: igo
+  labels:
+    app: igozhang
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: igozhang
+  template:
+    metadata:
+      labels:
+        app: igozhang
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: igozhang
+          # 构建推送示例（年月日-时分秒）：krccr.ccs.tencentyun.com/igokorea/igozhang:20260509-143052
+          image: krccr.ccs.tencentyun.com/igokorea/igozhang:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3003
+          env:
+            - name: LISTEN
+              value: ":3003"
+            # 容器内固定路径；迁移数据时勿改，只改下方 volumes.hostPath
+            - name: DATA_ROOT
+              value: /igozhang.cn
+            - name: TRANSFER_SUBDIR
+              value: fs
+            # 根路径部署（https://igozhang.cn/）：勿设置 BASE_PATH。
+          volumeMounts:
+            - name: data-root
+              mountPath: /igozhang.cn
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        # 宿主机数据目录；迁移时仅改 path，保持与 mountPath/DATA_ROOT 对应同一站点树
+        - name: data-root
+          hostPath:
+            path: /data/igozhang.cn
+            type: DirectoryOrCreate

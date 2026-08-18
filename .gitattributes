@@ -1,0 +1,10 @@
+# 与仓库根 .gitattributes 一致；在仅打开 fs 子目录时也生效
+* text=auto eol=lf
+*.go text charset=utf-8
+*.js text charset=utf-8
+*.html text charset=utf-8
+*.md text charset=utf-8
+*.json text charset=utf-8
+*.yaml text charset=utf-8
+*.yml text charset=utf-8
+*.tpl text charset=utf-8

@@ -1,0 +1,75 @@
+﻿:root{--bg:#e8efe8;--panel:#dde8dd;--text:#2d3b2d;--muted:#5a6b5a;--accent:#3d6b4a;--line:#b8c9b8;--input:#f4faf4}
+.igoadmin-page{width:100%}
+.igoadmin-panel{max-width:min(72rem,96vw);margin:0 auto;width:100%}
+.igoadmin-page h2{font-size:1.05rem;margin:0 0 .75rem;font-weight:600;text-align:center}
+.igoadmin-auth{margin-bottom:1rem}
+.igoadmin-block{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.1rem;margin-bottom:1rem}
+.igoadmin-block h3{font-size:.95rem;margin:0 0 .65rem;font-weight:600;color:var(--muted)}
+.igoadmin-field{margin:.55rem 0}
+.igoadmin-field label{display:block;font-size:.84rem;color:var(--muted);margin-bottom:.25rem}
+.igoadmin-input{display:block;width:100%;font:inherit;font-size:.9rem;padding:.45rem .55rem;border:1px solid var(--line);border-radius:6px;background:var(--input);color:var(--text);box-sizing:border-box}
+.igoadmin-textarea{min-height:min(32rem,55vh);max-height:75vh;font-family:ui-monospace,Consolas,monospace;font-size:.88rem;line-height:1.5;resize:vertical}
+.igoadmin-md-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4rem;margin-bottom:.25rem}
+.igoadmin-md-head label{margin:0}
+.igoadmin-md-actions{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
+.igoadmin-md-preview{margin:.5rem 0 0;padding:.85rem 1rem;border:1px solid var(--line);border-radius:8px;background:var(--input);max-height:min(36rem,60vh);overflow:auto}
+.igoadmin-md-preview.is-open{display:block}
+.igoadmin-md-preview:not(.is-open){display:none}
+.igoadmin-msg.is-warn{color:#6a5a20}
+.igoadmin-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.6rem;align-items:center}
+.igoadmin-btn{font:inherit;font-size:.86rem;padding:.38rem .9rem;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--accent);cursor:pointer}
+.igoadmin-btn:hover{background:rgba(61,107,74,.1)}
+.igoadmin-btn:disabled{opacity:.55;cursor:not-allowed}
+.igoadmin-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.igoadmin-msg{font-size:.88rem;margin:.45rem 0;min-height:1.2em;color:var(--muted)}
+.igoadmin-msg.err{color:#7a3a2a}
+.igoadmin-msg.ok{color:#2d5a3a}
+.igoadmin-authed-hint{line-height:1.5;margin:0}
+.igoadmin-authed-block{margin-bottom:1rem}
+.igoadmin-preview-msg{font-size:.82rem;color:var(--muted);margin:.35rem 0 0;min-height:1.1em}
+.igoadmin-preview-msg.is-warn{color:#6a5a20}
+.igoadmin-preview-msg.is-err{color:#7a3a2a}
+.igoadmin-key-expiry{font-size:.88rem;color:var(--muted);margin-left:.35rem}
+.igoadmin-key-expiry.is-warn{color:#7a3a2a}
+.igoadmin-hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
+.igoadmin-cat-row{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
+.igoadmin-cat-row select{flex:1 1 10rem;min-width:8rem;margin:0}
+.igoadmin-cat-row .igoadmin-btn{flex:0 0 auto}
+.igoadmin-search-wrap{position:relative}
+.igoadmin-search-results{position:absolute;left:0;right:0;top:100%;z-index:30;margin:.25rem 0 0;padding:.2rem 0;list-style:none;border:1px solid var(--line);border-radius:10px;max-height:14rem;overflow:auto;box-shadow:0 4px 12px rgba(45,59,45,.12);background:var(--input);pointer-events:none;opacity:0;visibility:hidden;transition:opacity .15s ease,visibility .15s}
+.igoadmin-search-results.is-open{opacity:1;visibility:visible;pointer-events:auto}
+.igoadmin-search-results li{border-bottom:1px solid rgba(184,201,184,.45)}
+.igoadmin-search-results li:last-child{border-bottom:0}
+.igoadmin-search-results button{display:block;width:100%;text-align:left;padding:.45rem .6rem;border:0;background:transparent;color:var(--text);font:inherit;font-size:.88rem;cursor:pointer}
+.igoadmin-search-results button:hover{background:rgba(61,107,74,.1)}
+.igoadmin-search-results strong{display:block;font-weight:600}
+.igoadmin-search-results span{display:block;font-size:.78rem;color:var(--muted)}
+.igoadmin-meta-hint{font-size:.82rem;color:var(--muted);margin:.35rem 0 0}
+.igoadmin-backup{padding:.5rem .7rem;margin-bottom:.75rem}
+.igoadmin-backup-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.igoadmin-backup-progress{height:4px;background:rgba(184,201,184,.55);border-radius:2px;margin:.35rem 0 0;overflow:hidden}
+.igoadmin-backup-progress-bar{height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .12s ease}
+.igoadmin-backup-progress.is-indeterminate .igoadmin-backup-progress-bar{width:38%;animation:igoadmin-backup-indet 1s ease-in-out infinite}
+@keyframes igoadmin-backup-indet{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+.igoadmin-backup-msg{margin:.3rem 0 0;min-height:1.05em;font-size:.84rem;line-height:1.35}
+.igoadmin-mode-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 .85rem}
+.igoadmin-mode-tab{flex:1 1 auto;min-width:7rem;font:inherit;font-size:.9rem;padding:.45rem .85rem;border-radius:6px;border:1px solid var(--line);background:var(--input);color:var(--muted);cursor:pointer}
+.igoadmin-mode-tab:hover{background:rgba(61,107,74,.08);color:var(--text)}
+.igoadmin-mode-tab.is-active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.igoadmin-mode-panel{margin:0}
+.igoadmin-batch-list{list-style:none;margin:.4rem 0 0;padding:0;max-height:14rem;overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--input)}
+.igoadmin-batch-list li{border-bottom:1px solid rgba(184,201,184,.45)}
+.igoadmin-batch-list li:last-child{border-bottom:0}
+.igoadmin-batch-list label{display:flex;gap:.45rem;align-items:flex-start;padding:.4rem .55rem;cursor:pointer;font-size:.86rem}
+.igoadmin-batch-list label:hover{background:rgba(61,107,74,.06)}
+.igoadmin-batch-list input[type=checkbox]{margin:.15rem 0 0;flex:0 0 auto}
+.igoadmin-batch-list .batch-item-main{flex:1 1 auto;min-width:0}
+.igoadmin-batch-list .batch-item-title{font-weight:600;display:block}
+.igoadmin-batch-list .batch-item-meta{display:block;font-size:.78rem;color:var(--muted);word-break:break-all}
+.igoadmin-batch-toolbar{display:flex;flex-wrap:wrap;gap:.45rem .65rem;align-items:center;margin:.45rem 0;font-size:.84rem}
+.igoadmin-batch-toolbar label{display:inline-flex;align-items:center;gap:.3rem;margin:0;cursor:pointer}
+.igoadmin-batch-page{font-size:.84rem;color:var(--muted)}
+.igoadmin-batch-op{margin:.65rem 0 0;padding-top:.65rem;border-top:1px solid var(--line)}
+.igoadmin-batch-op .igoadmin-field label.igoadmin-batch-op-label{display:flex;align-items:center;gap:.4rem;cursor:pointer}
+.igoadmin-batch-op .igoadmin-field label.igoadmin-batch-op-label input{margin:0}
+.hidden{display:none!important}

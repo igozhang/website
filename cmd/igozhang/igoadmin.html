@@ -1,0 +1,160 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+{{PAGE_HEAD}}
+<title>后台</title>
+<style>
+{{DOC_CODE_CSS}}
+{{SITE_HEAD_CSS}}
+{{IGO_AUTH_CSS}}
+</style>
+<link rel="stylesheet" href="{{IGOADMIN_CSS_URL}}">
+</head>
+<body>
+{{SITE_HEAD}}
+<main class="shell fs-page-body" data-fs-pub="{{FS_PUB_ATTR}}">
+<section class="igoadmin-page fs-module" aria-label="后台">
+<div class="igoadmin-panel">
+{{IGO_AUTH_PANEL}}
+<div id="igoMainSec" class="hidden">
+<h2>后台</h2>
+<div class="igoadmin-block igoadmin-authed-block">
+<p class="igoadmin-msg ok igoadmin-authed-hint" id="authedHint">已验证，可管理文章。<span class="igo-auth-expiry" id="igoMainKeyExpiry" aria-live="polite"></span></p>
+</div>
+<div class="igoadmin-block igoadmin-backup">
+<div class="igoadmin-backup-row">
+<button type="button" class="igoadmin-btn" id="btnExport">导出 ZIP</button>
+<label style="margin:0"><input type="file" id="importZip" accept=".zip" hidden><button type="button" class="igoadmin-btn" id="btnImportPick">导入 ZIP</button></label>
+</div>
+<div class="igoadmin-backup-progress hidden" id="backupProgress" aria-hidden="true"><div class="igoadmin-backup-progress-bar" id="backupProgressBar"></div></div>
+<p class="igoadmin-msg igoadmin-backup-msg" id="backupMsg" aria-live="polite"></p>
+</div>
+<div class="igoadmin-block">
+<div class="igoadmin-mode-tabs" role="tablist" aria-label="文章操作">
+<button type="button" class="igoadmin-mode-tab is-active" id="tabNew" role="tab" aria-selected="true" aria-controls="panelNew">新建文章</button>
+<button type="button" class="igoadmin-mode-tab" id="tabEdit" role="tab" aria-selected="false" aria-controls="panelEdit">编辑已有</button>
+<button type="button" class="igoadmin-mode-tab" id="tabBatch" role="tab" aria-selected="false" aria-controls="panelBatch">批量编辑</button>
+</div>
+<div id="panelNew" class="igoadmin-mode-panel" role="tabpanel" aria-labelledby="tabNew">
+<div class="igoadmin-field"><label for="newSlug">slug</label><input class="igoadmin-input" id="newSlug" placeholder="字母开头，可含大写/空格/-，保存时自动转小写+下划线" spellcheck="false"></div>
+<p class="igoadmin-meta-hint" id="newTitleHint">标题将随正文首行「# 标题」或 slug 自动生成</p>
+<div class="igoadmin-field"><label for="newCat">分类</label>
+<div class="igoadmin-cat-row">
+<select class="igoadmin-input" id="newCat"><option value="">— 选择分类 —</option></select>
+<button type="button" class="igoadmin-btn" id="btnNewCatAdd" title="添加新分类">添加</button>
+<button type="button" class="igoadmin-btn" id="btnNewCatRename" title="重命名当前选中分类">改名</button>
+<button type="button" class="igoadmin-btn" id="btnNewCatDel" title="从全部文章中移除此分类">删除</button>
+</div></div>
+<div class="igoadmin-field"><label for="newTags">标签（逗号分隔）</label><input class="igoadmin-input" id="newTags"></div>
+<div class="igoadmin-field"><label for="newAuthor">作者</label><input class="igoadmin-input" id="newAuthor" value="igozhang" autocomplete="off"></div>
+<div class="igoadmin-field"><label for="newDate">发布时间</label><input class="igoadmin-input" id="newDate" placeholder="留空用当前时间；仅日期则补当前时分秒，如 2018-06-23" autocomplete="off"></div>
+<div class="igoadmin-field">
+<div class="igoadmin-md-head"><label for="newMd">Markdown</label><div class="igoadmin-md-actions"><button type="button" class="igoadmin-btn" id="btnNewClear" title="Exit current editing">Clear</button><button type="button" class="igoadmin-btn" id="btnNewPreview">预览</button></div></div>
+<textarea class="igoadmin-input igoadmin-textarea" id="newMd" data-md-editor="1"></textarea>
+<div class="igoadmin-md-preview doc-md" id="newMdPreview" aria-live="polite"></div>
+<p class="igoadmin-preview-msg" id="newPreviewMsg" aria-live="polite"></p>
+</div>
+<div class="igoadmin-row">
+<button type="button" class="igoadmin-btn primary" id="btnCreate">保存新建</button>
+<label style="margin:0"><input type="file" id="uploadMd" accept=".md" hidden><button type="button" class="igoadmin-btn" id="btnUploadPick">上传 .md</button></label>
+<button type="button" class="igoadmin-btn" id="btnPasteImg" title="在光标处插入，保存文章后图片才写入磁盘">粘贴图片</button>
+</div>
+<p class="igoadmin-msg" id="newMsg" aria-live="polite"></p>
+</div>
+<div id="panelEdit" class="igoadmin-mode-panel hidden" role="tabpanel" aria-labelledby="tabEdit" hidden>
+<div class="igoadmin-field igoadmin-search-wrap">
+<label for="editSearch">搜索文章</label>
+<input type="search" class="igoadmin-input" id="editSearch" placeholder="slug、标题、标签…" autocomplete="off">
+<ul class="igoadmin-search-results" id="editSearchResults" aria-live="polite"></ul>
+</div>
+<input type="hidden" id="editSlugOriginal" value="">
+<div class="igoadmin-field"><label for="editSlug">slug</label><input class="igoadmin-input" id="editSlug" placeholder="字母开头，可含大写/空格/-，保存时自动转小写+下划线" spellcheck="false"></div>
+<div class="igoadmin-field"><label for="editDate">发布日期</label><input class="igoadmin-input" id="editDate" placeholder="仅日期则补当前时分秒，如 2018-06-23 或 2026-05-28 12:00:00" autocomplete="off"></div>
+<div class="igoadmin-field"><label for="editTitle">标题</label><input class="igoadmin-input" id="editTitle"></div>
+<div class="igoadmin-field"><label for="editCat">分类</label>
+<p class="igoadmin-meta-hint">下拉框编辑主分类；未更改分类时保存会保留文章原有的多分类。</p>
+<div class="igoadmin-cat-row">
+<select class="igoadmin-input" id="editCat"><option value="">— 选择分类 —</option></select>
+<button type="button" class="igoadmin-btn" id="btnEditCatAdd">添加</button>
+<button type="button" class="igoadmin-btn" id="btnEditCatRename">改名</button>
+<button type="button" class="igoadmin-btn" id="btnEditCatDel">删除</button>
+</div></div>
+<div class="igoadmin-field"><label for="editTags">标签</label><input class="igoadmin-input" id="editTags"></div>
+<div class="igoadmin-field"><label for="editAuthor">作者</label><input class="igoadmin-input" id="editAuthor" placeholder="igozhang" autocomplete="off"></div>
+<div class="igoadmin-field">
+<div class="igoadmin-md-head"><label for="editMd">Markdown</label><div class="igoadmin-md-actions"><button type="button" class="igoadmin-btn" id="btnEditClear" title="Exit current editing">Clear</button><button type="button" class="igoadmin-btn" id="btnEditPreview">预览</button></div></div>
+<textarea class="igoadmin-input igoadmin-textarea" id="editMd" data-md-editor="1"></textarea>
+<div class="igoadmin-md-preview doc-md" id="editMdPreview" aria-live="polite"></div>
+<p class="igoadmin-preview-msg" id="editPreviewMsg" aria-live="polite"></p>
+</div>
+<p class="igoadmin-msg" id="editMsg" aria-live="assertive"></p>
+<div class="igoadmin-row">
+<button type="button" class="igoadmin-btn primary" id="btnSave">保存更新</button>
+<button type="button" class="igoadmin-btn" id="btnEditPasteImg">粘贴图片</button>
+<button type="button" class="igoadmin-btn" id="btnDelete">删除文章</button>
+</div>
+</div>
+<div id="panelBatch" class="igoadmin-mode-panel hidden" role="tabpanel" aria-labelledby="tabBatch" hidden>
+<p class="igoadmin-meta-hint">按分类或关键词筛选文章，勾选后批量修改<strong>分类</strong>或<strong>标签</strong>（不改正文）。</p>
+<div class="igoadmin-field">
+<label>筛选条件</label>
+<div class="igoadmin-cat-row">
+<select class="igoadmin-input" id="batchFilterCat"><option value="">全部分类</option></select>
+<input type="search" class="igoadmin-input" id="batchSearchQ" placeholder="关键词（可选，与分类取交集）" autocomplete="off">
+<button type="button" class="igoadmin-btn primary" id="btnBatchLoad">加载列表</button>
+</div>
+</div>
+<p class="igoadmin-meta-hint" id="batchListSummary">请先加载列表</p>
+<div class="igoadmin-batch-toolbar">
+<label><input type="checkbox" id="batchChkAllPage"> 本页全选</label>
+<button type="button" class="igoadmin-btn" id="btnBatchSelectAll">全选筛选结果</button>
+<button type="button" class="igoadmin-btn" id="btnBatchSelectNone">清空选择</button>
+<span id="batchSelCount" class="igoadmin-batch-page">已选 0 篇</span>
+</div>
+<ul class="igoadmin-batch-list" id="batchArticleList" aria-live="polite"></ul>
+<div class="igoadmin-row">
+<button type="button" class="igoadmin-btn" id="btnBatchPrev" disabled>上一页</button>
+<span class="igoadmin-batch-page" id="batchPageInfo"></span>
+<button type="button" class="igoadmin-btn" id="btnBatchNext" disabled>下一页</button>
+</div>
+<div class="igoadmin-batch-op">
+<div class="igoadmin-field">
+<label class="igoadmin-batch-op-label"><input type="checkbox" id="batchChkCat"> 修改分类</label>
+<div class="igoadmin-cat-row">
+<select class="igoadmin-input" id="batchCat" disabled><option value="">— 清空分类 —</option></select>
+<button type="button" class="igoadmin-btn" id="btnBatchCatAdd" title="添加新分类">添加</button>
+</div>
+<p class="igoadmin-meta-hint">批量将覆盖文章主分类（多分类会变为单一分类）</p>
+</div>
+<div class="igoadmin-field">
+<label class="igoadmin-batch-op-label"><input type="checkbox" id="batchChkTags"> 修改标签</label>
+<div class="igoadmin-cat-row">
+<select class="igoadmin-input" id="batchTagsMode" disabled style="flex:0 1 7rem;min-width:5.5rem">
+<option value="replace">覆盖</option>
+<option value="append">追加</option>
+<option value="remove">移除</option>
+</select>
+<input class="igoadmin-input" id="batchTags" placeholder="逗号分隔" disabled>
+</div>
+</div>
+<div class="igoadmin-row">
+<button type="button" class="igoadmin-btn" id="btnBatchPreview">预览变更</button>
+<button type="button" class="igoadmin-btn primary" id="btnBatchApply">应用批量更新</button>
+</div>
+</div>
+<p class="igoadmin-msg" id="batchMsg" aria-live="polite"></p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+{{SITE_SUBPAGE_TAIL}}
+<script>window.__IGOADMIN_BASE__={{IGOADMIN_BASE}};window.__IGO_MERMAID_LIB__={{IGO_MERMAID_LIB}};window.__IGO_MERMAID_JS__={{IGO_MERMAID_JS}};</script>
+{{DOC_CODE_JS}}
+{{IGO_AUTH_JS}}
+<script src="{{IGOADMIN_JS_URL}}" defer></script>
+{{SITE_FOOTER}}
+</body>
+</html>
+

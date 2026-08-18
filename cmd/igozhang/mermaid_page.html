@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+{{PAGE_HEAD}}
+<title>Mermaid 预览</title>
+<style>
+:root{--bg:#e8efe8;--panel:#dde8dd;--text:#2d3b2d;--muted:#5a6b5a;--accent:#3d6b4a;--line:#b8c9b8}
+*{box-sizing:border-box}
+html{width:100%;overflow-x:hidden}
+body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;display:flex;flex-direction:column;align-items:stretch}
+.mermaid-page{width:100%;padding:.25rem 0 1rem}
+.mermaid-page h2{font-size:1.05rem;margin:0 0 .65rem;font-weight:600;text-align:center}
+.mermaid-toolbar{display:flex;flex-wrap:wrap;justify-content:center;gap:.45rem;margin-bottom:.65rem}
+.mermaid-btn{font:inherit;font-size:.82rem;padding:.32rem .75rem;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--accent);cursor:pointer;white-space:nowrap}
+.mermaid-btn:hover{background:rgba(61,107,74,.1)}
+.mermaid-btn:active{transform:translateY(1px)}
+.mermaid-btn.is-active{border-color:var(--accent);background:rgba(61,107,74,.15)}
+.mermaid-workspace{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;align-items:stretch}
+.mermaid-pane{display:flex;flex-direction:column;gap:.35rem;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.55rem .65rem}
+.mermaid-pane label{font-size:.82rem;color:var(--muted);font-weight:600}
+.mermaid-src{flex:1 1 auto;width:100%;min-height:16rem;resize:vertical;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.82rem;line-height:1.45;padding:.45rem .55rem;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.45);color:var(--text)}
+.mermaid-src:focus{outline:2px solid rgba(61,107,74,.35);outline-offset:1px}
+.mermaid-preview{flex:1 1 auto;min-height:16rem;margin:0!important;padding:.35rem;background:rgba(255,255,255,.35);border:1px dashed var(--line);border-radius:8px;display:flex;align-items:flex-start;justify-content:center}
+.mermaid-preview:empty::before{content:"输入 Mermaid 源码后在此预览";color:var(--muted);font-size:.84rem;padding:1rem;text-align:center;width:100%}
+.mermaid-hint{font-size:.8rem;color:var(--muted);text-align:center;margin:.55rem 0 0;line-height:1.45}
+@media (max-width:820px){
+  .mermaid-workspace{grid-template-columns:1fr}
+  .mermaid-src,.mermaid-preview{min-height:12rem}
+  main.shell.fs-page-body{padding-left:.5rem;padding-right:.5rem}
+}
+{{MERMAID_CSS}}
+{{SITE_HEAD_CSS}}
+</style>
+</head>
+<body>
+{{SITE_HEAD}}
+<main class="shell fs-page-body" data-fs-pub="{{FS_PUB_ATTR}}">
+<section class="mermaid-page fs-module" data-fs-module="mermaid" aria-label="Mermaid 预览">
+<h2>Mermaid 预览</h2>
+<div class="mermaid-toolbar" role="toolbar" aria-label="Mermaid 操作">
+<button type="button" class="mermaid-btn is-active" data-mmd-example="flowchart">流程图</button>
+<button type="button" class="mermaid-btn" data-mmd-example="sequence">时序图</button>
+<button type="button" class="mermaid-btn" data-mmd-example="class">类图</button>
+<button type="button" class="mermaid-btn" data-mmd-example="gantt">甘特图</button>
+<button type="button" class="mermaid-btn" data-mmd-example="state">状态图</button>
+<button type="button" class="mermaid-btn" data-mmd-example="free">自由</button>
+<button type="button" class="mermaid-btn" id="btnMmdPng" title="导出为 PNG 图片">导出 PNG</button>
+<button type="button" class="mermaid-btn" id="btnMmdCopy" title="复制源码">复制</button>
+<button type="button" class="mermaid-btn" id="btnMmdClear" title="恢复默认示例">清空</button>
+</div>
+<div class="mermaid-workspace">
+<div class="mermaid-pane">
+<label for="mermaidSrc">源码</label>
+<textarea class="mermaid-src" id="mermaidSrc" spellcheck="false" aria-label="Mermaid 源码">flowchart TB
+  A[开始] --> B{判断}
+  B -->|是| C[处理]
+  B -->|否| D[结束]
+  C --> D</textarea>
+</div>
+<div class="mermaid-pane">
+<label for="mermaidPreview">预览</label>
+<div id="mermaidPreview" class="mermaid-preview doc-mermaid-wrap" aria-live="polite"></div>
+</div>
+</div>
+<p class="mermaid-hint">选择示例模板快速开始，或点「自由」空白编写；修改源码后约 0.3 秒自动刷新预览。</p>
+</section>
+</main>
+{{SITE_SUBPAGE_TAIL}}
+{{MERMAID_SCRIPTS}}
+<script>
+(function(){
+  "use strict";
+  var srcEl=document.getElementById("mermaidSrc");
+  var previewEl=document.getElementById("mermaidPreview");
+  var debounceTimer=null;
+  var EXAMPLES={
+    flowchart:"flowchart TB\n  A[开始] --> B{判断}\n  B -->|是| C[处理]\n  B -->|否| D[结束]\n  C --> D",
+    sequence:"sequenceDiagram\n  participant A as 用户\n  participant B as 服务\n  A->>B: 请求\n  B-->>A: 响应",
+    class:"classDiagram\n  class Animal {\n    +name: string\n    +move()\n  }\n  class Dog {\n    +bark()\n  }\n  Animal <|-- Dog",
+    gantt:"gantt\n  title 项目计划\n  dateFormat YYYY-MM-DD\n  section 阶段一\n  需求分析 :a1, 2026-01-01, 7d\n  section 阶段二\n  开发实现 :a2, after a1, 14d\n  测试验收 :a3, after a2, 7d",
+    state:"stateDiagram-v2\n  [*] --> 待处理\n  待处理 --> 进行中 : 开始\n  进行中 --> 已完成 : 完成\n  进行中 --> 已取消 : 取消\n  已完成 --> [*]\n  已取消 --> [*]",
+    free:""
+  };
+  function matchExampleKey(text){
+    var t=(text||"").replace(/^\n+|\n+$/g,"");
+    for(var key in EXAMPLES){
+      if(key==="free") continue;
+      if(EXAMPLES[key]===t) return key;
+    }
+    return "free";
+  }
+  function setActiveExample(key){
+    document.querySelectorAll("[data-mmd-example]").forEach(function(btn){
+      btn.classList.toggle("is-active",btn.getAttribute("data-mmd-example")===key);
+    });
+  }
+  function scheduleRender(){
+    clearTimeout(debounceTimer);
+    debounceTimer=setTimeout(doRender,300);
+  }
+  function doRender(){
+    if(typeof renderMermaidSource!=="function") return;
+    renderMermaidSource(srcEl.value,previewEl);
+  }
+  function waitAndRender(){
+    var n=0;
+    var timer=setInterval(function(){
+      n+=1;
+      if(typeof renderMermaidSource==="function"&&window.mermaid){
+        clearInterval(timer);
+        doRender();
+      }else if(n>=80){
+        clearInterval(timer);
+      }
+    },50);
+  }
+  function setExample(key){
+    if(!(key in EXAMPLES)) return;
+    srcEl.value=EXAMPLES[key];
+    setActiveExample(key);
+    if(key==="free"){
+      srcEl.focus();
+    }
+    scheduleRender();
+  }
+  function onSrcInput(){
+    setActiveExample(matchExampleKey(srcEl.value));
+    scheduleRender();
+  }
+  function copySrc(){
+    var text=srcEl.value||"";
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).catch(function(){ fallbackCopy(text); });
+      return;
+    }
+    fallbackCopy(text);
+  }
+  function fallbackCopy(text){
+    srcEl.focus();
+    srcEl.select();
+    try{ document.execCommand("copy"); }catch(e){}
+  }
+  function exportPng(){
+    var btn=document.getElementById("btnMmdPng");
+    if(btn) btn.disabled=true;
+    function done(){ if(btn){ btn.disabled=false; btn.textContent="导出 PNG"; } }
+    if(typeof exportMermaidPngFromSource!=="function"){
+      alert("导出功能未加载，请刷新页面后重试");
+      done();
+      return;
+    }
+    if(btn) btn.textContent="导出中…";
+    exportMermaidPngFromSource(srcEl.value,"mermaid-"+Date.now()+".png",2,previewEl)
+      .then(done)
+      .catch(function(err){
+        alert("导出失败："+(err&&err.message?err.message:String(err||"unknown")));
+        done();
+      });
+  }
+  srcEl.addEventListener("input",onSrcInput);
+  document.getElementById("btnMmdPng").addEventListener("click",exportPng);
+  document.getElementById("btnMmdCopy").addEventListener("click",copySrc);
+  document.getElementById("btnMmdClear").addEventListener("click",function(){ setExample("flowchart"); });
+  document.querySelectorAll("[data-mmd-example]").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      setExample(btn.getAttribute("data-mmd-example"));
+    });
+  });
+  waitAndRender();
+})();
+</script>
+{{SITE_FOOTER}}
+</body>
+</html>

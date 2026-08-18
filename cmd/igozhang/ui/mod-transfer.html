@@ -1,0 +1,27 @@
+<section class="fs-module fs-transfer-section" data-fs-module="transfer" id="fs-mod-transfer">
+<h2>文件中转</h2>
+<p class="msg">输入 HTTP(S) 链接拉取，或使用下方「上传」将文件保存至数据目录下的 <code>fs</code> 子目录。</p>
+<div class="fs-usage-block" id="fsUsageBlock" hidden>
+<progress id="fsUsageBar" max="100" value="0"></progress>
+</div>
+<div class="row">
+<input type="url" id="url" placeholder="https://example.com/file.zip" autocomplete="off">
+<button type="button" class="phrase-next" id="btnFetch">拉取到服务器</button>
+<button type="button" class="phrase-next" id="btnFetchCancel" hidden title="中止拉取">取消</button>
+</div>
+<p class="msg" id="fetchMsg"></p>
+<div class="transfer-progress" id="fetchProgressRow" hidden>
+<progress id="fetchBar" max="100" value="0"></progress>
+<span class="msg progress-label" id="fetchProgressLabel"></span>
+</div>
+<div class="row">
+<input type="file" id="uploadInput" multiple hidden>
+<button type="button" class="phrase-next" id="btnUpload" aria-label="上传文件到服务器 fs 目录">上传</button>
+<button type="button" class="phrase-next" id="btnUploadCancel" hidden title="中止上传">取消</button>
+</div>
+<p class="msg" id="uploadMsg"></p>
+<div class="transfer-progress" id="uploadProgressRow" hidden>
+<progress id="uploadBar" max="100" value="0"></progress>
+<span class="msg progress-label" id="uploadProgressLabel"></span>
+</div>
+</section>

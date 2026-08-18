@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+{{PAGE_HEAD}}
+{{TEXAS_CARD_BACK_META}}
+<title>德扑 · 人机对战</title>
+<style>
+:root{--bg:#e8efe8;--panel:#dde8dd;--text:#2d3b2d;--muted:#5a6b5a;--accent:#3d6b4a;--line:#b8c9b8}
+*{box-sizing:border-box}
+html{width:100%;overflow-x:hidden}
+body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;display:flex;flex-direction:column;align-items:stretch}
+.texas-page{width:100%;display:flex;justify-content:center;align-items:flex-start;padding:0}
+.texas-panel{width:100%;max-width:100%;min-width:0;flex:0 0 auto;margin:0;display:flex;flex-direction:column;align-items:center;gap:.45rem;padding:.25rem 0 .35rem;background:transparent;border:none;border-radius:0;box-shadow:none}
+.texas-title,.status,.toolbar,.toolbar-diff,.toolbar-count{width:100%;max-width:100%;margin:0}
+.texas-title{font-size:1.05rem;font-weight:600;text-align:center}
+.status{font-size:.88rem;color:var(--muted);text-align:center;line-height:1.35;min-height:1.35em;margin:0;padding:0 .2rem;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.board-wrap{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;max-width:100%;min-width:0;margin:0 auto;touch-action:pan-y;-webkit-user-select:none;user-select:none;flex-shrink:0;overflow-x:clip}
+.board-inner{position:relative;display:flex;flex-direction:column;align-items:stretch;max-width:100%;min-width:0;line-height:normal;vertical-align:top}
+.texas-hand-summary{position:relative;display:block;flex:0 0 auto;width:100%;max-width:100%;min-width:0;margin:.35rem 0 0;padding:7px 10px;border-radius:8px;background:rgba(8,20,14,.82);border:1px solid rgba(255,230,180,.25);color:rgba(255,248,220,.95);font-size:11px;line-height:14px;text-align:center;pointer-events:auto;z-index:2;box-sizing:border-box;overflow:hidden}
+.texas-hand-summary[hidden]{display:none!important}
+.texas-hand-summary p{margin:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.texas-hand-summary.has-truncated{cursor:help}
+.texas-hand-summary-tip{position:absolute;left:0;right:0;bottom:calc(100% + 6px);padding:8px 10px;background:rgba(12,28,20,.96);border:1px solid rgba(255,230,180,.35);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.38);text-align:left;display:none;pointer-events:none;z-index:3;box-sizing:border-box}
+.texas-hand-summary-tip p{margin:0 0 5px;white-space:normal;word-break:break-word;line-height:1.45;color:rgba(255,248,220,.98)}
+.texas-hand-summary-tip p:last-child{margin-bottom:0}
+.texas-hand-summary.has-truncated:hover .texas-hand-summary-tip,
+.texas-hand-summary.has-truncated:focus-within .texas-hand-summary-tip{display:block}
+canvas{display:block;flex:0 0 auto;max-width:100%;border-radius:10px;border:2px solid #4a6a4a;box-shadow:0 2px 10px rgba(42,58,42,.15);touch-action:manipulation}
+.toolbar{display:flex;flex-wrap:wrap;gap:.45rem;justify-content:center;padding-top:.1rem;width:100%}
+.toolbar-diff,.toolbar-count{margin-bottom:-.15rem}
+.texas-panel .phrase-next{font:inherit;font-size:.8rem;padding:.28rem .65rem;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--accent);cursor:pointer}
+.texas-panel .phrase-next:disabled{opacity:.5;cursor:not-allowed}
+.texas-panel .phrase-next.primary{border-color:var(--accent);background:rgba(61,107,74,.15)}
+.raise-mult{font:inherit;font-size:.8rem;padding:.28rem .45rem;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--accent);cursor:pointer;min-width:3.2rem}
+.raise-mult:disabled{opacity:.5;cursor:not-allowed}
+.texas-rules{width:100%;margin-top:.35rem;padding:.65rem .75rem;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.28);font-size:.82rem;line-height:1.55;color:var(--text)}
+.texas-rules h3{font-size:.88rem;margin:0 0 .35rem;font-weight:600;color:var(--accent)}
+.texas-rules p{margin:.25rem 0}
+.texas-rules ul{margin:.2rem 0 .35rem;padding-left:1.15rem}
+.texas-rules li{margin:.12rem 0}
+.texas-ranks{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));gap:.15rem .5rem;margin:.25rem 0 0;padding:0;list-style:none}
+.texas-ranks li{padding:.12rem 0;border-bottom:1px dashed rgba(184,201,184,.55)}
+.texas-ranks li span{color:var(--muted);margin-right:.25rem}
+.texas-pot-rules,.texas-pot-example{margin:.25rem 0 .35rem;padding-left:1.15rem}
+.texas-pot-rules li,.texas-pot-example li{margin:.15rem 0;line-height:1.55}
+.texas-pot-example{list-style:disc}
+@media (max-width:640px){
+  main.shell.fs-page-body{padding-left:.5rem;padding-right:.5rem}
+  section.texas-page{padding:.75rem .35rem .65rem}
+  .texas-panel{padding:0;gap:.35rem}
+  .toolbar button{flex:1;min-width:4.2rem}
+  .toolbar-count button{min-width:3.6rem}
+  .status{white-space:normal;min-height:2.5em}
+  .board-wrap{margin-top:.15rem}
+  .texas-hand-summary{margin-top:.25rem;padding:6px 8px;font-size:10px;line-height:1.35}
+  .texas-hand-summary p{white-space:normal;word-break:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3}
+  .texas-hand-summary-tip{left:0;right:0;max-height:min(42vh,14rem);overflow-y:auto}
+}
+{{SITE_HEAD_CSS}}
+</style>
+{{TEXAS_OPS_SCRIPT}}
+</head>
+<body>
+{{SITE_HEAD}}
+<main class="shell fs-page-body" data-fs-pub="{{FS_PUB_ATTR}}">
+<section class="texas-page" aria-label="德州扑克人机对战">
+<div class="texas-panel">
+<h2 class="texas-title">德扑 · 人机对战</h2>
+<p class="status" id="status" aria-live="polite">准备开始</p>
+<div class="toolbar toolbar-count" role="group" aria-label="对手人数">
+<button type="button" class="phrase-next" id="btnOpp3" data-opp="3">1v3</button>
+<button type="button" class="phrase-next" id="btnOpp4" data-opp="4">1v4</button>
+<button type="button" class="phrase-next" id="btnOpp5" data-opp="5">1v5</button>
+</div>
+<div class="toolbar toolbar-diff" role="group" aria-label="难度">
+<button type="button" class="phrase-next primary" id="btnLevelEasy" data-level="easy">简单</button>
+<button type="button" class="phrase-next" id="btnLevelHard" data-level="hard">困难</button>
+</div>
+<div class="board-wrap"><div class="board-inner"><canvas id="board" width="720" height="520" role="img" aria-label="德州扑克牌桌"></canvas><div id="handSummary" class="texas-hand-summary" hidden aria-live="polite"></div></div></div>
+<div class="toolbar" role="group" aria-label="操作">
+<button type="button" class="phrase-next" id="btnFold" disabled>弃牌</button>
+<button type="button" class="phrase-next" id="btnCheckCall" disabled>过牌</button>
+<select id="raiseMult" class="raise-mult" title="加注倍数（×大盲）" disabled aria-label="加注倍数">
+<option value="1" selected>1×</option>
+<option value="2">2×</option>
+<option value="3">3×</option>
+<option value="4">4×</option>
+<option value="5">5×</option>
+<option value="6">6×</option>
+<option value="7">7×</option>
+<option value="8">8×</option>
+<option value="9">9×</option>
+</select>
+<button type="button" class="phrase-next" id="btnRaise" disabled>加注 20</button>
+<button type="button" class="phrase-next" id="btnAllIn" disabled>梭哈</button>
+<button type="button" class="phrase-next primary" id="btnNextHand" hidden>下一手</button>
+<button type="button" class="phrase-next" id="btnRestart">开始</button>
+</div>
+<div class="texas-rules" aria-label="规则说明">
+<h3>简易规则</h3>
+<p>你与 3～5 名 AI 同桌，使用标准 52 张牌。每手牌依次进行<strong>翻牌前 → 翻牌（3 张）→ 转牌 → 河牌</strong>四轮下注，可用公共牌与手牌组成最大五张牌比大小。</p>
+<ul>
+<li>进入页面后点击<strong>开始</strong>发牌；未选对手人数时随机 1v3～1v5，选中后按所选人数开局。</li>
+<li>每手自动收取小盲 / 大盲；牌桌旁圆形 <strong>BB</strong> 标记本手<strong>大盲</strong>位置。</li>
+<li>轮到你时可<strong>弃牌、过牌、跟注、加注（1～9 倍大盲，默认 1 倍）、梭哈</strong>；任意玩家弃牌后其手牌明牌显示，你弃牌后其余 AI 手牌也会全部翻开，直到下一手；本手结束赢家手牌以彩色圆角方框呼吸高亮（无弹窗）。</li>
+<li>每轮最多加注 2 次（含梭哈触发的加注）；其余玩家跟平后进入下一阶段。</li>
+<li>仅剩一名未弃牌玩家时直接赢得底池；河牌后摊牌比牌，筹码归零者出局，最后幸存者获胜。</li>
+</ul>
+<h3>主池与边池</h3>
+<p>当多名玩家<strong>梭哈且本手累计投入不同</strong>时，摊牌前会把总底池拆成<strong>主池 + 边池1、边池2…</strong>，各池<strong>单独比牌、单独分配</strong>。已弃牌玩家投入的部分仍计入池子大小，但<strong>不能参与比牌赢池</strong>。</p>
+<p>拆分算法（与本页程序一致）：</p>
+<ol class="texas-pot-rules">
+<li>取本手每位玩家的累计投入 <strong>betTotal</strong>（含盲注），从小到大排列；</li>
+<li>从最低档起逐层「切片」：本层厚度 = 当前档位 − 上一档位；</li>
+<li>本层池额 = 厚度 × <strong>本手累计投入 ≥ 当前档位</strong> 的人数（含已弃牌）；</li>
+<li>最低档为主池，之后依次为边池1、边池2…；每层只在<strong>未弃牌且投入达标</strong>的玩家间比牌。</li>
+</ol>
+<p><strong>举例</strong>（5 人桌，大盲 20、小盲 10）：Carter 累计 10，Ethan / Lucas 各 20，你与 Mason 各梭哈 2000，其余三人在你俩梭哈前已弃牌。</p>
+<ul class="texas-pot-example">
+<li><strong>主池 50</strong>：厚度 10（10−0）× 5 人 = 50；五人均至少投入 10。</li>
+<li><strong>边池1 40</strong>：厚度 10（20−10）× 4 人 = 40；除 Carter 外四人至少投入 20。</li>
+<li><strong>边池2 3960</strong>：厚度 1980（2000−20）× 2 人 = 3960；仅你与 Mason 投入 2000。</li>
+<li>合计 50+40+3960 = <strong>4050</strong>，与桌上总投入一致；摊牌时三层各比一次，你在三层均以对 J 胜过 Mason。</li>
+</ul>
+<h3>牌型大小（大到小）</h3>
+<ol class="texas-ranks">
+<li><span>1</span>皇家同花顺</li>
+<li><span>2</span>同花顺</li>
+<li><span>3</span>四条</li>
+<li><span>4</span>葫芦</li>
+<li><span>5</span>同花</li>
+<li><span>6</span>顺子</li>
+<li><span>7</span>三条</li>
+<li><span>8</span>两对</li>
+<li><span>9</span>一对</li>
+<li><span>10</span>高牌</li>
+</ol>
+</div>
+</div>
+</section>
+</main>
+<div class="shell mp3-above-foot">{{MP3_SECTION}}</div>
+{{SITE_SUBPAGE_TAIL}}
+{{MP3_SCRIPTS}}
+{{TEXAS_SCRIPTS}}
+{{SITE_FOOTER}}
+</body>
+</html>

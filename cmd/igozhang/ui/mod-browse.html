@@ -1,0 +1,23 @@
+<section class="fs-module" data-fs-module="browse" id="fs-mod-browse">
+<h2>目录浏览与下载</h2>
+<div class="row browse-controls">
+<label class="msg" for="browseSort">排序</label>
+<select id="browseSort" title="排序字段">
+<option value="name">名称</option>
+<option value="time">时间</option>
+<option value="size">大小</option>
+</select>
+<select id="browseOrder" title="升序/降序">
+<option value="asc">升序</option>
+<option value="desc">降序</option>
+</select>
+<input type="text" id="browseExt" placeholder="后缀 .zip,.pdf" autocomplete="off" title="逗号分隔，仅匹配文件">
+</div>
+<div class="breadcrumb" id="crumb"></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>名称</th><th class="size">大小</th><th class="size">预览</th><th class="size col-time">北京时间</th><th class="size col-ops">操作</th></tr></thead>
+<tbody id="list"></tbody>
+</table>
+</div>
+</section>

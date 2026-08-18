@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: igozhang
+  namespace: igo
+  labels:
+    app: igozhang
+  annotations:
+    # 避免 Ingress 未挂 TLS 或仅 HTTP 访问时被控制器强制跳 HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - igozhang.cn
+      secretName: igozhang-cn-tls
+  rules:
+    - host: igozhang.cn
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: igozhang
+                port:
+                  number: 80

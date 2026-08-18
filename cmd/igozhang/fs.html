@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+{{PAGE_HEAD}}
+<title>文件 · {{SITE_TITLE}}</title>
+<style>
+{{SITE_HEAD_CSS}}
+{{IGO_AUTH_CSS}}
+</style>
+</head>
+<body>
+{{SITE_HEAD}}
+<main class="shell fs-page-body" data-fs-pub="{{FS_PUB_ATTR}}">
+{{IGO_AUTH_PANEL}}
+<div id="igoMainSec" class="hidden">
+<p class="igo-authed-hint">已验证，可操作文件中转、暂存与浏览。<span class="igo-auth-expiry" id="igoMainKeyExpiry" aria-live="polite"></span></p>
+{{FS_MODULES}}
+</div>
+</main>
+<div class="shell mp3-above-foot">{{MP3_SECTION}}</div>
+{{SITE_SUBPAGE_TAIL}}
+{{STASH_OPS}}
+<script>{{VISIBILITY_HUB}}</script>
+<script>if(window.__fsPhraseInit) window.__fsPhraseInit({{PHRASES_JSON}});</script>
+{{FS_BOOT_SCRIPTS}}
+{{MP3_SCRIPTS}}
+{{SITE_FOOTER}}
+</body>
+</html>

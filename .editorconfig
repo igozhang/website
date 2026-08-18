@@ -1,0 +1,10 @@
+# igozhang 工作区：JS/Go 源文件统一 UTF-8，避免 mp3-init.js 等中文串乱码
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.{js,html,go,md,json,yaml,yml,tpl,conf,txt}]
+charset = utf-8

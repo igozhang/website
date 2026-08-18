@@ -1,0 +1,24 @@
+<section class="fs-module" data-fs-module="stash" id="fs-mod-stash">
+<h2>文本暂存</h2>
+<p class="msg">不超过 200 KB（按 UTF-8 字节计），服务端保留约 12 小时后自动清空。</p>
+<textarea id="stashText" class="stash-textarea" rows="2" placeholder="在此输入暂存文本…" autocomplete="off" spellcheck="false"></textarea>
+<p class="msg" id="stashByteHint"></p>
+<div class="stash-toolbar">
+<div class="stash-toolbar-left">
+<button type="button" class="phrase-next" id="btnStashSave" title="保存到服务器">暂存</button>
+<button type="button" class="phrase-next" id="btnStashCopy" title="复制全部内容" disabled>复制</button>
+<button type="button" class="phrase-next" id="btnStashExport" title="将服务端暂存写入 fs 目录下的文本文件">to fs</button>
+</div>
+<button type="button" class="phrase-next" id="btnStashClear" title="清空服务端暂存与输入框">清空</button>
+</div>
+<div id="stashConflictBox" class="stash-conflict" hidden>
+<p class="stash-conflict-msg" id="stashConflictMsg">服务端内容已在其他设备更新，与当前编辑不一致。</p>
+<div class="stash-conflict-actions">
+<button type="button" class="phrase-next" id="btnStashConflictLoad" title="用服务器上的文本替换编辑框">加载服务端内容</button>
+<button type="button" class="phrase-next" id="btnStashConflictOverwrite" title="以当前编辑框内容保存并覆盖服务器">用当前内容覆盖</button>
+<button type="button" class="phrase-next" id="btnStashConflictDismiss" title="关闭此提示，不保存">取消</button>
+</div>
+</div>
+<div id="stashSnippet" class="stash-snippet" hidden></div>
+<p class="msg" id="stashSaveMsg"></p>
+</section>

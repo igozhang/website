@@ -1,0 +1,25 @@
+<section class="mp3-section fs-module" data-fs-module="mp3" id="fs-mod-mp3">
+<div class="mp3-head-row">
+<h2 class="mp3-heading" id="mp3Heading">MP3</h2>
+<div class="mp3-main-row">
+<div id="mp3Tags" class="mp3-tags-inline"></div>
+<div class="mp3-controls">
+<div class="mp3-search-wrap">
+<input type="search" id="mp3Search" class="mp3-search-input" placeholder="搜歌名/歌手" autocomplete="off" aria-label="搜索歌曲" disabled>
+<ul class="mp3-search-results" id="mp3SearchResults" aria-live="polite" hidden></ul>
+</div>
+<div class="mp3-row">
+<button type="button" class="phrase-next" id="mp3Random" title="全曲库随机一首并持续连播。备选超过 5 首时，会避开最近播过的 2 首">随机</button>
+<button type="button" class="phrase-next" id="mp3Loop" aria-pressed="false" title="单曲循环：仅重复当前这首；换歌或点随机后自动关闭">one</button>
+<button type="button" class="phrase-next" id="mp3Play" title="播放">▶</button>
+</div>
+</div>
+</div>
+</div>
+<audio id="mp3Audio" preload="metadata" playsinline></audio>
+<audio id="mp3Prefetch" preload="auto" playsinline muted></audio>
+<p class="mp3-title" id="mp3Title"></p>
+<div class="mp3-meta" id="mp3Meta">
+<img id="mp3Cover" class="mp3-cover" alt="" decoding="async" hidden />
+</div>
+</section>

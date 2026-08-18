@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: igozhang
+  namespace: igo
+  labels:
+    app: igozhang
+spec:
+  type: ClusterIP
+  selector:
+    app: igozhang
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

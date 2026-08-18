@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+{{PAGE_HEAD}}
+<title>验证密钥</title>
+<style>
+:root{--bg:#e8efe8;--panel:#dde8dd;--text:#2d3b2d;--muted:#5a6b5a;--accent:#3d6b4a;--line:#b8c9b8;--ok:#2d5a3a;--err:#7a3a2a}
+*{box-sizing:border-box}
+html{width:100%;overflow-x:hidden}
+body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;display:flex;flex-direction:column;align-items:stretch}
+.igokey-page{width:100%;padding:.25rem 0 1rem}
+.igokey-page h2{font-size:1.05rem;margin:0 0 .75rem;font-weight:600;text-align:center}
+.key{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:1.65rem;letter-spacing:.12em;text-align:center;padding:.65rem .5rem;background:var(--panel);border:1px dashed var(--line);border-radius:8px;user-select:all;word-break:break-all;max-width:22rem;margin:0 auto}
+.hint{font-size:.86rem;color:var(--muted);margin:.85rem auto 0;line-height:1.5;text-align:center;max-width:22rem}
+.status{margin-top:.75rem;font-size:.88rem;text-align:center;min-height:1.25em;max-width:22rem;margin-left:auto;margin-right:auto}
+.status.ok{color:var(--ok)}
+.status.err{color:var(--err)}
+.actions{margin-top:.75rem;display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;max-width:22rem;margin-left:auto;margin-right:auto}
+.btn-igo{font:inherit;font-size:.86rem;padding:.38rem .9rem;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--accent);cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block}
+.btn-igo:hover{background:rgba(61,107,74,.1)}
+.btn-igo:active{transform:translateY(1px)}
+@media (max-width:640px){
+  main.shell.fs-page-body{padding-left:.5rem;padding-right:.5rem}
+}
+{{SITE_HEAD_CSS}}
+</style>
+</head>
+<body>
+{{SITE_HEAD}}
+<main class="shell fs-page-body" data-fs-pub="{{FS_PUB_ATTR}}">
+<section class="igokey-page fs-module" data-fs-module="igokey" aria-label="验证密钥">
+<h2>验证密钥</h2>
+<p class="key" id="igoKey" aria-label="验证密钥">{{IGO_KEY}}</p>
+<div class="actions">
+<button type="button" class="btn-igo" id="btnIgoCopy" title="复制验证密钥到剪贴板">复制</button>
+<a class="btn-igo" id="btnIgoRenew" href="{{IGO_RENEW_HREF}}" title="作废当前密钥并生成新的">重新生成</a>
+</div>
+<p class="hint">有效期约 1 小时，至 <time id="igoExp">—</time>（北京时间，剩余 <span id="igoRemMin">—</span> 分钟）<br>剩余超过 15 分钟时刷新本页将沿用当前密钥；不足 15 分钟或点击「重新生成」会签发新密钥。<br>打开页面时会自动尝试复制；也可点击「复制」。</p>
+<p class="status" id="igoStatus" aria-live="polite"></p>
+</section>
+</main>
+{{SITE_SUBPAGE_TAIL}}
+<script>
+(function(){
+  var key={{IGO_KEY_JS}};
+  var remainSec={{IGO_EXPIRES_IN_SEC}};
+  var expAt=0;
+  if(remainSec>0) expAt=Math.floor(Date.now()/1000)+remainSec;
+  var expEl=document.getElementById("igoExp");
+  var remMinEl=document.getElementById("igoRemMin");
+  function updateIgoExpiry(){
+    if(!expAt) return;
+    var now=Math.floor(Date.now()/1000);
+    var left=expAt-now;
+    if(remMinEl) remMinEl.textContent=String(left>0?Math.max(1,Math.ceil(left/60)):0);
+    if(expEl&&window.__fsFmtBeijing){
+      var t=window.__fsFmtBeijing(expAt);
+      if(t){ expEl.textContent=t; try{ expEl.dateTime=t; }catch(e){} }
+    }
+  }
+  updateIgoExpiry();
+  if(expAt) setInterval(updateIgoExpiry,1000);
+  var statusEl=document.getElementById("igoStatus");
+  var toastWrap=document.getElementById("toastWrap");
+  function setStatus(text,ok){
+    if(statusEl){
+      statusEl.textContent=text;
+      statusEl.className="status "+(ok?"ok":"err");
+    }
+  }
+  function showToast(text,isErr){
+    if(!toastWrap||!text) return;
+    var el=document.createElement("div");
+    el.className="toast "+(isErr?"err":"ok")+" show";
+    el.textContent=text;
+    toastWrap.appendChild(el);
+    setTimeout(function(){ try{ el.remove(); }catch(e){} }, isErr?5200:3800);
+  }
+  function copyKey(){
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(key);
+    }
+    return new Promise(function(resolve,reject){
+      var ta=document.createElement("textarea");
+      ta.value=key;
+      ta.setAttribute("readonly","");
+      ta.style.position="fixed";
+      ta.style.left="-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try{
+        if(document.execCommand("copy")) resolve();
+        else reject(new Error("execCommand failed"));
+      }catch(e){ reject(e); }
+      finally{ document.body.removeChild(ta); }
+    });
+  }
+  function onCopySuccess(fromBtn){
+    setStatus("已复制到剪贴板",true);
+    showToast(fromBtn?"已复制到剪贴板":"验证密钥已复制到剪贴板",false);
+  }
+  function onCopyFail(){
+    setStatus("请手动选中上方密钥或点击「复制」",false);
+    showToast("无法自动复制，请点击「复制」或手动选中密钥",true);
+  }
+  var btnCopy=document.getElementById("btnIgoCopy");
+  if(btnCopy){
+    btnCopy.addEventListener("click",function(){
+      copyKey().then(function(){ onCopySuccess(true); }).catch(onCopyFail);
+    });
+  }
+  copyKey().then(function(){ onCopySuccess(false); }).catch(onCopyFail);
+})();
+</script>
+{{SITE_FOOTER}}
+</body>
+</html>

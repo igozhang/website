@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+{{PAGE_HEAD}}
+<title>象棋 · 人机对战</title>
+<style>
+:root{--bg:#e8efe8;--panel:#dde8dd;--text:#2d3b2d;--muted:#5a6b5a;--accent:#3d6b4a;--line:#b8c9b8}
+*{box-sizing:border-box}
+html{width:100%;overflow-x:hidden}
+body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;display:flex;flex-direction:column;align-items:stretch}
+.xiangqi-page{width:100%;display:flex;justify-content:center;align-items:flex-start;padding:0}
+.xiangqi-panel{width:100%;max-width:100%;flex:0 0 auto;margin:0;display:flex;flex-direction:column;align-items:center;gap:.45rem;padding:.25rem 0 .35rem;background:transparent;border:none;border-radius:0;box-shadow:none}
+.xiangqi-title,.status,.toolbar,.toolbar-diff{width:100%;max-width:100%;margin:0}
+.xiangqi-title{font-size:1.05rem;font-weight:600;text-align:center}
+.status{font-size:.88rem;color:var(--muted);text-align:center;line-height:1.35;height:1.35em;min-height:1.35em;margin:0;padding:0 .2rem;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.board-wrap{position:relative;display:flex;justify-content:center;align-items:center;width:100%;max-width:100%;margin:0 auto;line-height:0;touch-action:pan-y;-webkit-user-select:none;user-select:none;flex-shrink:0;overflow:visible}
+canvas{display:block;flex:0 0 auto;max-width:100%;border-radius:8px;border:2px solid #8a6a3a;box-shadow:0 2px 8px rgba(42,58,42,.1);touch-action:manipulation}
+.toolbar{display:flex;flex-wrap:wrap;gap:.45rem;justify-content:center;padding-top:.1rem;width:100%}
+.toolbar-diff{margin-bottom:-.15rem}
+.xiangqi-panel .phrase-next{font:inherit;font-size:.8rem;padding:.28rem .65rem;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--accent);cursor:pointer}
+.xiangqi-panel .phrase-next:disabled{opacity:.5;cursor:not-allowed}
+.xiangqi-panel .phrase-next.primary{border-color:var(--accent);background:rgba(61,107,74,.15)}
+@media (max-width:640px){
+  main.shell.fs-page-body{padding-left:.5rem;padding-right:.5rem}
+  section.xiangqi-page{padding:.75rem .35rem .65rem}
+  .xiangqi-panel{padding:0;gap:.35rem}
+  .toolbar button{flex:1;min-width:4.8rem}
+}
+{{SITE_HEAD_CSS}}
+</style>
+{{XIANGQI_OPS_SCRIPT}}
+</head>
+<body>
+{{SITE_HEAD}}
+<main class="shell fs-page-body" data-fs-pub="{{FS_PUB_ATTR}}">
+<section class="xiangqi-page" aria-label="象棋人机对战">
+<div class="xiangqi-panel">
+<h2 class="xiangqi-title">象棋 · 人机对战</h2>
+<p class="status" id="status" aria-live="polite">困难 · 轮到红方</p>
+<div class="toolbar toolbar-diff" role="group" aria-label="难度">
+<button type="button" class="phrase-next" id="btnLevelEasy" data-level="easy">简单</button>
+<button type="button" class="phrase-next primary" id="btnLevelHard" data-level="hard">困难</button>
+</div>
+<div class="board-wrap"><canvas id="board" width="360" height="400" role="img" aria-label="中国象棋棋盘"></canvas></div>
+<div class="toolbar">
+<button type="button" class="phrase-next" id="btnUndo" disabled>悔棋</button>
+<button type="button" class="phrase-next primary" id="btnRestart">重新开始</button>
+</div>
+</div>
+</section>
+</main>
+<div class="shell mp3-above-foot">{{MP3_SECTION}}</div>
+{{SITE_SUBPAGE_TAIL}}
+{{MP3_SCRIPTS}}
+{{XIANGQI_SCRIPTS}}
+{{SITE_FOOTER}}
+</body>
+</html>

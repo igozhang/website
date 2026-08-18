@@ -1,0 +1,22 @@
+# VCS / CI / docs
+.git
+.github
+.DS_Store
+*.md
+.editorconfig
+.gitattributes
+
+# Not copied into the image (runtime / local only)
+deploy
+assets
+secret07
+tmp-perf-baseline
+
+# Local / foreign binaries (not used by go build)
+igo-doc
+fs.exe
+fs
+*.exe
+*.exe~
+*~
+igozhang
