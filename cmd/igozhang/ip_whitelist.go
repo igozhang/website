@@ -12,7 +12,8 @@ const ipWhitelistFile = "ip-whitelist.conf"
 
 const ipWhitelistFileTemplate = `# IP 白名单：每行一个 IPv4/IPv6；也支持逗号、空格、分号、- 分隔多个 IP
 # 以 # 开头为注释；仅精确 IP，不支持 CIDR
-# 仅对 /ops 与 /igoadmin 生效；列表非空时，仅白名单内 IP 可访问（否则 403）
+# 仅对 /ops、/igoadmin、/fs 及 /api/auth/* 生效；列表非空时，仅白名单内 IP 可访问（否则 403）
+# 不限制首页、文章、/files 直链、MP3 流等
 # 列表为空时不限制（与黑名单「空列表不拦截」对称）
 # 示例：203.0.113.50
 # 示例：1.2.3.4, 5.6.7.8

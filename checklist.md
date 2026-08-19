@@ -9,6 +9,7 @@
 | 文件 | 用途 | 变更时何时必须更新 |
 |------|------|---------------------|
 | **`README.md`** | 项目能力说明、规则对照表、环境变量、接口摘要、本地构建 | 增删 API、改限制常量、改环境变量、用户可见行为 |
+| **`README.en.md`** | 英文概要（能力、环境变量、构建） | 增删用户可见能力或环境变量时更新对应段落 |
 | **`deploy/deploy.md`** | 镜像构建、K8s、Ingress TLS、宝塔 Nginx | 改端口、改探针、改证书/反代示例、改上线步骤 |
 | **`checklist.md`**（本文件） | 不变量、真机/发版自检、易回归点 | 新增契约类逻辑、修过又易坏的点、部署检查项变更 |
 
@@ -48,6 +49,8 @@
 - [ ] **`GET /api/stash`**：`ETag` + **`If-None-Match`** → **304** 行为与前端 `stashListETag`、脏检测、轮询退避一致；改服务端 JSON 形状时同步 README。
 - [ ] **按 IP 限流**：`GET /api/browse`、`/api/stash` 的分钟窗阈值变更后更新 README 规则表与本文件 §2。
 - [ ] **路径探测自动封禁**：改 `[security]` 阈值或排除前缀后更新 README 规则表；确认 `/api/auth/*`、`/stream/mp3/` 连播、文章多图加载不会误伤正常访客。
+- [ ] **MP3 门禁**：关 `[mp3] gate_enabled` 后流/封面/列表应不校验 Cookie；开时无 Cookie 访问 `/stream/mp3/` 为 **403**；页面或 `GET /api/mp3/gate` 可签发。
+- [ ] **删文件**：`DELETE /api/file` 无 token 401；不可删目录或 `assets/` 下非浏览路径。
 
 ---
 
@@ -56,11 +59,12 @@
 - [ ] **IGO密钥认证**：`/ops`、`/igoadmin`、`/fs` 入口标题均为「IGO密钥认证」；`POST /api/auth/login` / `session`；token 仅存内存；失败限流与 **`secret07/auth-rl.json`** 行为与 README §8 一致。
 - [ ] **`[secret-auth]` 文章**：`link.conf` 列出的 slug 访问时出认证面板、正文不进 HTML；`GET /api/doc/secret-article` 无 token 401、有 token 返回 bodyHTML；首页 excerpt 为空；改 conf **即时生效**（无需重启）。
 - [ ] **开关解耦**：关 **`[ops]`** 后 `/ops` 404，但 `/fs`、`/igoadmin` 仍可登录；关 **`[auth]`** 或 **`[igokey]`** 后认证 API 404。
-- [ ] **`/fs` 边界**：页内拉取/上传/暂存/浏览须 token；**`/files/…` 直链**与 **`/api/browse?path=assets/mp3`** **不**需登录。
+- [ ] **`/fs` 边界**：页内拉取/上传/暂存/浏览/删文件须 token；**`/files/…` 直链**不需登录；**`/api/browse?path=assets/mp3`**、**`/stream/mp3/`**、**`/api/mp3/cover`** 不需 igokey token，但须 **MP3 门禁 Cookie**（`[mp3] gate_enabled`）。
 - [ ] **`/ops` 看板**：统一认证后展示在线访客（默认 5 分钟窗）、近期 5 条、访问量统计；登录后另拉 **`/api/ops/targets`**；悬停/点击日/周/月数字可查看最近 30 条明细；字段未获取则不显示；**ZIP 导入 bundle 后**在线人数与访问次数应一致（内存看板已清空、cache 已恢复）。
 - [ ] **黑名单**：仅精确 IPv4/IPv6；`secret07/ip-blacklist.conf` 持久化；命中全站 **403**；ZIP 导入后无需重启即生效。
+- [ ] **白名单**：`secret07/ip-whitelist.conf`；空列表不限制；非空时仅列出的 IP 可访问 **`/ops`、`/igoadmin`、`/fs`、`/api/auth/*`**（否则 403）；首页/文章/`/files`/MP3 **不受限**；ZIP 导入后立即重载；直接改文件须重启 Pod。
 - [ ] **`secret07/user-access.log`**：独立轮转；近 **30 天**日归档全量；月压缩（统计 + **200** 条）；月归档 **1 年**；单文件 **≤5MB** 截断。
-- [ ] **文章 ZIP**：非空黑名单、访客 bundle 随 `/igoadmin` 导出；bundle **v3**（导出前月压实、`statsManifest`、瘦身明细、`insightsCache`）；导入写回 log/归档、恢复 cache、清空内存看板；`manifest.json` 含 **`accessBundleStats`**；导入响应 **`warnings`** 非空时核对统计是否完整。
+- [ ] **文章 ZIP**：非空黑名单、非空白名单、访客 bundle 随 `/igoadmin` 导出；bundle **v3**（导出前月压实、`statsManifest`、瘦身明细、`insightsCache`）；导入写回 log/归档、恢复 cache、清空内存看板；`manifest.json` 含 **`accessBundleStats`**；导入响应 **`warnings`** 非空时核对统计是否完整。
 
 ---
 
@@ -82,7 +86,7 @@
 ### 7.1 通用
 
 - [ ] `go build ./cmd/igozhang` 通过；`go vet ./...` 与 `go test ./...`（或至少 `go test ./cmd/igozhang -run TestProjectTextFiles`）通过。
-- [ ] **`README.md`** / **`checklist.md`** / **`deploy/deploy.md`** 中与本次改动相关段落已更新。
+- [ ] **`README.md`** / **`README.en.md`** / **`checklist.md`** / **`deploy/deploy.md`** 中与本次改动相关段落已更新。
 
 ### 7.2 部署环境（生产或预发）
 
@@ -104,7 +108,7 @@
 - [ ] **Mermaid**：文章 fenced `mermaid` 块在含 `language-mermaid` 时按需加载 `/assets/doc/mermaid.min.js`；`doc-code-chrome.js` 须跳过 mermaid；后台 `/igoadmin` **首屏不预挂** Mermaid，预览 HTML 含 mermaid 块时再动态加载 `mermaid.min.js` + `doc-mermaid.js` 并调用 `initDocMermaid`；**`/mermaid`**（及 **`/Mermaid`**）工具页预挂载并调用 `renderMermaidSource` 即时预览。升级库时替换 **`internal/docmermaid/mermaid.min.js`**（当前 **11.4.1**）并跑 **`go test ./cmd/igozhang -run TestDocMermaid`**。
 - [ ] MP3 **`assets/mp3/`**、引语 **`assets/eng/phrases.md`**、知键 **`assets/eng/word3k-full.md`**（旧 **`assets/phrases.md`** / **`assets/word3k-full.md`** 启动时自动迁入 **`eng/`**）。
 - [ ] 导入 ZIP：**合并**模式（不删本地独有 md；与 ZIP 字节一致的 md 不覆盖；ZIP 外且无索引的 md 按导入时刻登记，浏览量 1–5 随机）。
-- [ ] 文章备份/恢复仅走 **`/igoadmin`** 导出 ZIP → 导入 ZIP；缓存 **`secret-tempfile/doc-export.zip`**；可选含 **`secret07/ip-blacklist.conf`**、**`secret07/user-access-bundle.json` v3**（导出前月压实、`statsManifest`、瘦身明细、`insightsCache`）。
+- [ ] 文章备份/恢复仅走 **`/igoadmin`** 导出 ZIP → 导入 ZIP；缓存 **`secret-tempfile/doc-export.zip`**；可选含 **`secret07/ip-blacklist.conf`**、**`secret07/ip-whitelist.conf`**、**`secret07/user-access-bundle.json` v3**（导出前月压实、`statsManifest`、瘦身明细、`insightsCache`）。
 - [ ] **`igo.conf`** 唯一源码 **`cmd/igozhang/igo.conf`**；改后 **`go generate ./cmd/igozhang/...`** 同步 **`deploy/secret07/igo.conf`**。
 
 ---
@@ -113,6 +117,7 @@
 
 团队可在合并时于本节追加一行：`YYYY-MM-DD — 摘要 — MR/链接`，便于审计文档是否随代码更新。
 
+- 2026-08-19 — 文档与代码对齐：IP 白名单、MP3 门禁、DELETE /api/file、首页分类分页、igoadmin 批量/分类 API、README.en — （文档检视）
 - 2026-07-30 — 健壮性 P0：graceful shutdown、panic recovery、Server ReadHeaderTimeout；Docker BuildKit 缓存；CI；hostPath 统一 `/data/igozhang.cn` — （本迭代）
 - 2026-07-19 — 首页加载优化 A：gzip、去重引语、外置 home.css / mp3-init.js — （本迭代）
 - 2026-07-19 — `/igoadmin` 首屏不再预挂 Mermaid；预览含 mermaid 块时再动态加载 — （本迭代）

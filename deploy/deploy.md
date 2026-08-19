@@ -9,6 +9,7 @@
 ### 与项目根文档的配套关系
 
 - 项目能力、规则表、接口与环境变量：**[README.md](../README.md)**  
+- 英文概要：**[README.en.md](../README.en.md)**  
 - 不变量、易回归点、发版/真机自检（含 Media Session / Android）：**[checklist.md](../checklist.md)**  
 - **维护约定**：变更部署步骤、反代约定、HTTPS、探针或上线检查项时，请**同步更新本文件**；若同时影响业务规则或前端契约，请一并更新 **`README.md`** 与 **`checklist.md`**。
 
@@ -34,7 +35,7 @@
 - URL 中转写入容器内 **`/igozhang.cn/fs`**（可通过环境变量 `TRANSFER_SUBDIR` 修改子目录名）。
 - TLS 证书放在宿主机 **`/data/igozhang.cn/tls/`**（**`igozhang.cn.pem`**、**`igozhang.cn.key`**；供 Ingress Secret 与宝塔 Nginx 共用）。
 
-**`DATA_ROOT`（容器内 `/igozhang.cn`）下主要子目录**（首次启动由进程自动创建缺失目录；**`assets/md/`** 为空时会从镜像内 **`assets/`** 种子复制，并写入内置演示文章 **`docker_ts`**）：
+**`DATA_ROOT`（容器内 `/igozhang.cn`）下主要子目录**（首次启动由进程自动创建缺失目录；**镜像不含 `assets/`**。若 `md/` 为空且工作目录下无种子目录，仅写入内置演示文章 **`docker_ts`**。生产请把仓库 **`assets/`** 同步到宿主机 **`/data/igozhang.cn/assets/`**；本地开发可设 **`DOC_ASSETS_SEED=assets`**）：
 
 | 路径 | 说明 |
 |------|------|
@@ -46,11 +47,12 @@
 | **`secret07/igo.conf`** | 运维配置（首次从内嵌复制；改后须重启 Pod） |
 | **`secret07/sqlitedb/doc.db`** | 文章 SQLite 索引 |
 | **`secret07/ip-blacklist.conf`** | IP 黑名单（可选；非空时随 `/igoadmin` ZIP 备份） |
+| **`secret07/ip-whitelist.conf`** | IP 白名单（可选；非空时限制 `/ops` `/igoadmin` `/fs` `/api/auth`；随 ZIP 备份，导入立即生效） |
 | **`secret07/user-access.log`** | 访客访问日志（JSON 行；ZIP 导出为 **`user-access-bundle.json` v3**，含月 summary、未压实日归档、statsManifest、insightsCache） |
 | **`secret-tempfile/`** | 文本暂存、文章导出缓存 **`doc-export.zip`** |
 | **`secret-log/`** | 运行日志（`igozhang.log`；不进文章 ZIP） |
 
-**迁移提示**：若旧环境 MP3 在 **`DATA_ROOT/mp3`**、引语/词库在 **`secret07/`**，请手动移至上表 **`assets/`** 对应路径；文章备份统一走后台 **`/igoadmin`** 导出 ZIP → 导入 ZIP（含 `meta/*.json`、`md/`、`doc-pic/`；有定制时另含 `secret07/` 配置与图片；**黑名单**、**`user-access-bundle.json` v3** 亦在 ZIP 内）。导入为**合并**：不删除 ZIP 外的本地文章；`md` 与 ZIP 内容一致则跳过覆盖；黑名单导入后**立即生效**；访客 bundle 写回 log/归档、恢复看板 cache、清空内存看板；`manifest.json` 含 **`accessBundleStats`**；统计偏差时响应 **`warnings`**。
+**迁移提示**：若旧环境 MP3 在 **`DATA_ROOT/mp3`**、引语/词库在 **`secret07/`**，请手动移至上表 **`assets/`** 对应路径；文章备份统一走后台 **`/igoadmin`** 导出 ZIP → 导入 ZIP（含 `meta/*.json`、`md/`、`doc-pic/`；有定制时另含 `secret07/` 配置与图片；**黑名单**、**白名单**、**`user-access-bundle.json` v3** 亦在 ZIP 内）。导入为**合并**：不删除 ZIP 外的本地文章；`md` 与 ZIP 内容一致则跳过覆盖；黑名单 / 白名单导入后**立即生效**；访客 bundle 写回 log/归档、恢复看板 cache、清空内存看板；`manifest.json` 含 **`accessBundleStats`**；统计偏差时响应 **`warnings`**。
 
 若集群禁止 `hostPath` 或节点不共享磁盘，请改为 **PVC** 并同步修改 `deployment.yaml` 中的 `volumes`。
 
@@ -184,6 +186,7 @@ kubectl -n igo rollout status deployment/igozhang
 - **流程**：输入有效 key → 验证通过 → 页面另请求 **`POST /api/ops/targets`** 填充目标机 → 执行 Shell；Shell 下方为**看板**（在线/近期访客、近一日/周/月访问量、黑名单维护）。
 - 访客日志：**`DATA_ROOT/secret07/user-access.log`**（JSON 行；近 30 天日归档全量，月压缩统计 + 200 条，保留 1 年；单文件 ≤5MB）。
 - 黑名单：**`DATA_ROOT/secret07/ip-blacklist.conf`**（精确 IPv4/IPv6）；命中全站 **403**；非空时随 `/igoadmin` ZIP 导出，导入后立即重载。
+- 白名单：**`DATA_ROOT/secret07/ip-whitelist.conf`**（精确 IPv4/IPv6）；**空列表不限制**；非空时仅列出的 IP 可访问 **`/ops`、`/igoadmin`、`/fs`、`/api/auth/*`**（否则 403）。运维页无单独 UI；ZIP 导入后立即重载。误锁自身时：在宿主机编辑该文件（加入本机 IP 或清空有效行）后 **重启 Pod**（进程启动时加载；仅改文件不热加载）。首页、文章、`/files` 直链不受白名单影响。
 - Pod 内 Go 使用 **`golang.org/x/crypto/ssh`** 连接目标 Linux；**复用 SSH 连接**，空闲 **5 分钟**无命令自动断开。
 - 首次启动若无 **`ssh.pass`**，会自动生成仅含一行说明注释的示例文件，须改为真实记录后重启 Pod。
 - 凭证文件：**`DATA_ROOT/secret07/ssh.pass`**（可参考 **`deploy/secret07/ssh.pass.example`**），每行：

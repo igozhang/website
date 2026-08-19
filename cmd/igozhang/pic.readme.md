@@ -1,6 +1,6 @@
 # 站点图标、页眉背景与德扑牌背（favicon / banner / texas）
 
-本文件仅为说明，**不参与程序解析**。将图片放在 **`DATA_ROOT/secret07/`**（与 `igo.conf` 同级），替换后**刷新页面**即可，**无需重启 Pod**。有定制时 favicon / banner / texas 随 `/igoadmin` 导出 ZIP 一并备份；**黑名单**与 **`user-access-bundle.json`**（访客明细 + 统计 + 看板 cache）亦在 ZIP 内（有数据时）。
+本文件仅为说明，**不参与程序解析**。将图片放在 **`DATA_ROOT/secret07/`**（与 `igo.conf` 同级），替换后**刷新页面**即可，**无需重启 Pod**。有定制时 favicon / banner / texas 随 `/igoadmin` 导出 ZIP 一并备份；**黑名单**、**白名单**（各自非空时）与 **`user-access-bundle.json`**（访客明细 + 统计 + 看板 cache）亦在 ZIP 内。
 
 ## Favicon（站点图标）
 
@@ -51,5 +51,5 @@ secret07/
 
 ## ZIP 备份 / 恢复
 
-- **导出**：存在有效 favicon / banner / texas 时，ZIP 内包含 `secret07/favicon.*`、`secret07/banner.*` 或 `secret07/texas.*`；**黑名单非空**时含 `secret07/ip-blacklist.conf`；**存在访客数据**时含 `secret07/user-access-bundle.json`（**v3**：导出前月压实、statsManifest、瘦身明细、insightsCache）
-- **导入**：写回 `secret07/`；图片类清除同类型旧文件后再写入；黑名单导入后**立即生效**；`user-access-bundle.json` 写回 log/归档、恢复看板 cache、清空内存看板；统计偏差时导入响应含 **`warnings`**
+- **导出**：存在有效 favicon / banner / texas 时，ZIP 内包含 `secret07/favicon.*`、`secret07/banner.*` 或 `secret07/texas.*`；**黑名单非空**时含 `secret07/ip-blacklist.conf`；**白名单非空**时含 `secret07/ip-whitelist.conf`；**存在访客数据**时含 `secret07/user-access-bundle.json`（**v3**：导出前月压实、statsManifest、瘦身明细、insightsCache）
+- **导入**：写回 `secret07/`；图片类清除同类型旧文件后再写入；黑名单 / 白名单导入后**立即生效**；`user-access-bundle.json` 写回 log/归档、恢复看板 cache、清空内存看板；统计偏差时导入响应含 **`warnings`**
