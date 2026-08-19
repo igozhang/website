@@ -62,26 +62,30 @@
 
 在项目根目录（含 `Dockerfile`）执行。Dockerfile 使用 BuildKit cache mount（`GOCACHE` / module cache），**请开启 BuildKit**（Docker 23+ 默认开启；旧版：`export DOCKER_BUILDKIT=1`）。二次构建在依赖未变时通常明显快于全量编译。
 
+每次构建同时打 **时间戳 TAG** 与 **`:latest`**，并**两个都推送**。线上滚动仍建议用带时间戳的 TAG（回滚明确）；`:latest` 便于仓库里始终能拉到最近一次构建。
+
 ```bash
 TAG=$(date +%Y%m%d-%H%M%S)
-IMAGE=krccr.ccs.tencentyun.com/igokorea/igozhang:${TAG}
-
-DOCKER_BUILDKIT=1 docker build -t "${IMAGE}" .
-docker push "${IMAGE}"
-```
-示例（Docker）：
-```bash
-TAG=$(date +%Y%m%d-%H%M%S) && DOCKER_BUILDKIT=1 docker build -t krccr.ccs.tencentyun.com/igokorea/igozhang:${TAG} . && docker push krccr.ccs.tencentyun.com/igokorea/igozhang:${TAG}
+echo "TAG=${TAG}"
+IMAGE=krccr.ccs.tencentyun.com/igokorea/igozhang
+DOCKER_BUILDKIT=1 docker build -t "${IMAGE}:${TAG}" -t "${IMAGE}:latest" .
+docker push "${IMAGE}:${TAG}"
+docker push "${IMAGE}:latest"
 ```
 
-示例（containerd / `nerdctl`；低配机建议限制 BuildKit 并行度）：
+示例（Docker 一行）：
 ```bash
-TAG=$(date +%Y%m%d-%H%M%S) && BUILDKIT_MAX_PARALLELISM=1 nerdctl build -t krccr.ccs.tencentyun.com/igokorea/igozhang:${TAG} . && nerdctl push krccr.ccs.tencentyun.com/igokorea/igozhang:${TAG}
+TAG=$(date +%Y%m%d-%H%M%S) && echo "TAG=${TAG}" && DOCKER_BUILDKIT=1 docker build -t "krccr.ccs.tencentyun.com/igokorea/igozhang:${TAG}" -t "krccr.ccs.tencentyun.com/igokorea/igozhang:latest" . && docker push "krccr.ccs.tencentyun.com/igokorea/igozhang:${TAG}" && docker push "krccr.ccs.tencentyun.com/igokorea/igozhang:latest"
+```
+
+示例（containerd / `nerdctl`；低配机限制 BuildKit 并行度，`--progress=plain` 便于看完整编译日志）：
+```bash
+TAG=$(date +%Y%m%d-%H%M%S) && echo "TAG=${TAG}" && BUILDKIT_MAX_PARALLELISM=1 nerdctl build --progress=plain -t "krccr.ccs.tencentyun.com/igokorea/igozhang:${TAG}" -t "krccr.ccs.tencentyun.com/igokorea/igozhang:latest" . && nerdctl push "krccr.ccs.tencentyun.com/igokorea/igozhang:${TAG}" && nerdctl push "krccr.ccs.tencentyun.com/igokorea/igozhang:latest"
 ```
 
 标签格式：**年月日-时分秒**（示例：`20260509-143052`）。
 
-将 `deploy/k8s/deployment.yaml` 中 `spec.template.spec.containers[0].image` 改为本次构建的 **`${IMAGE}`**，勿长期使用悬空 `:latest` 作为线上唯一版本（可减少回滚歧义）。
+将 `deploy/k8s/deployment.yaml` 中 `spec.template.spec.containers[0].image` 改为本次 **`${IMAGE}:${TAG}`**；勿把线上 Deployment **只**钉在 `:latest`（可减少回滚歧义）。`deployment.yaml` 仓库示例可用 `:latest`，发版仍以 `kubectl set image` 指定时间戳 TAG 为准。
 
 若 **`igozhang` Deployment 已在集群中**，只想换新镜像 tag，不必每次改 YAML，可直接：
 
