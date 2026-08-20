@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	igoKeyLen           = 8
-	igoKeyTTL           = time.Hour
-	igoKeyReuseAfter    = 15 * time.Minute
-	igoKeyAlphabet      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	igoKeyMaxEntries    = 4096
+	igoKeyLen        = 8
+	igoKeyTTL        = time.Hour
+	igoKeyReuseAfter = 15 * time.Minute
+	igoKeyAlphabet   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	igoKeyMaxEntries = 4096
 )
 
 //go:embed igokey.html
@@ -30,8 +30,8 @@ type igoKeyEntry struct {
 }
 
 var (
-	igoKeyMu    sync.RWMutex
-	igoKeyStore = map[string]igoKeyEntry{}
+	igoKeyMu     sync.RWMutex
+	igoKeyStore  = map[string]igoKeyEntry{}
 	igoKeyActive struct {
 		key       string
 		expiresAt time.Time
@@ -60,14 +60,13 @@ func igokeyHTTPHandler(w http.ResponseWriter, r *http.Request, dataRoot string) 
 		http.NotFound(w, r)
 		return
 	}
+	// 关闭 HTML 页面访问；仅保留 format=plain/json（页脚复制与程序取钥）。
+	if !wantsIgoKeyJSON(r) && !wantsIgoKeyPlain(r) {
+		http.NotFound(w, r)
+		return
+	}
 	forceNew := igoKeyForceRenew(r)
 	key, expiresAt := obtainIgoKey(dataRoot, forceNew)
-	pub := publicBaseFromRequest(r, getenv("BASE_PATH", ""))
-	if pub == "" {
-		if p := strings.TrimSpace(getenv("BASE_PATH", "")); p != "" {
-			pub = strings.TrimSuffix(p, "/")
-		}
-	}
 	if r.Method == http.MethodHead {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Igo-Key-Expires", expiresAt.UTC().Format(time.RFC3339))
@@ -77,26 +76,15 @@ func igokeyHTTPHandler(w http.ResponseWriter, r *http.Request, dataRoot string) 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"key":           key,
-			"expiresAt":     expiresAt.Unix(),
-			"expiresInSec":  int(time.Until(expiresAt).Seconds()),
+			"key":          key,
+			"expiresAt":    expiresAt.Unix(),
+			"expiresInSec": int(time.Until(expiresAt).Seconds()),
 		})
 		return
 	}
-	if wantsIgoKeyPlain(r) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-store")
-		_, _ = w.Write([]byte(key))
-		return
-	}
-	// HTML「重新生成」带 renew=1：签发后重定向到无查询参数地址，避免刷新反复强制换 key
-	if forceNew {
-		http.Redirect(w, r, pubPath(pub, "igokey"), http.StatusSeeOther)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
-	_, _ = w.Write(renderIgoKeyHTML(pub, key, expiresAt, r))
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write([]byte(key))
 }
 
 func wantsIgoKeyJSON(r *http.Request) bool {
@@ -144,6 +132,7 @@ func obtainIgoKey(dataRoot string, forceNew bool) (key string, expiresAt time.Ti
 
 	if !forceNew {
 		if k, exp, ok := activeIgoKeyReusableLocked(now); ok {
+			ensureIgoKeyPlainMatchesLocked(dataRoot, k)
 			igoKeyMu.Unlock()
 			return k, exp
 		}
@@ -281,10 +270,10 @@ func renderIgoKeyHTML(pub, key string, expiresAt time.Time, r *http.Request) []b
 		remainSec = 0
 	}
 	return applySitePage(string(igokeyPageTpl), pub, sitePageLayout{}, map[string]string{
-		"{{IGO_KEY}}":             escKey,
-		"{{IGO_KEY_JS}}":          templateJSEscape(key),
-		"{{IGO_EXPIRES_IN_SEC}}":  fmt.Sprintf("%d", remainSec),
-		"{{IGO_RENEW_HREF}}":      html.EscapeString(pubPath(pub, "igokey") + "?renew=1"),
+		"{{IGO_KEY}}":            escKey,
+		"{{IGO_KEY_JS}}":         templateJSEscape(key),
+		"{{IGO_EXPIRES_IN_SEC}}": fmt.Sprintf("%d", remainSec),
+		"{{IGO_RENEW_HREF}}":     html.EscapeString(pubPath(pub, "igokey") + "?renew=1"),
 	}, visitorGeoLabel(r))
 }
 

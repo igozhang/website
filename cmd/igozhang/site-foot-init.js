@@ -179,11 +179,6 @@ window.__fsSiteFootInit=function(base){
     }
     return Promise.reject(new Error("copy failed"));
   }
-  function footIgoCopyToast(text,isErr){
-    try{
-      if(window.__fs&&typeof window.__fs.showToast==="function") window.__fs.showToast(text,!!isErr);
-    }catch(e){}
-  }
   function footFetchIgoKey(){
     return fetch(footResolveHref("/igokey?format=plain"),{cache:"no-store",credentials:"same-origin"})
       .then(function(r){ if(!r.ok) throw new Error("igokey"); return r.text(); })
@@ -198,18 +193,11 @@ window.__fsSiteFootInit=function(base){
     igoKeyCache=key;
     igoKeyCacheAt=Date.now();
   }
-  function footIgoCopyOk(){
-    footHaptic();
-    footIgoCopyToast("验证密钥已复制到剪贴板",false);
-  }
-  function footIgoCopyFail(){
-    footIgoCopyToast("无法自动复制，请打开 /igokey 手动复制",true);
-  }
   function footIgoCopy(){
     if(igoFetchPending) return;
     var cached=igoKeyCache;
     if(cached&&footLooksLikeIgoKey(cached)&&(Date.now()-igoKeyCacheAt)<IGO_KEY_CACHE_MS){
-      footCopyPlain(cached).then(footIgoCopyOk).catch(footIgoCopyFail);
+      footCopyPlain(cached).then(footHaptic).catch(function(){});
       return;
     }
     igoFetchPending=true;
@@ -219,8 +207,8 @@ window.__fsSiteFootInit=function(base){
         if(!key) throw new Error("empty key");
         return footCopyPlain(key);
       })
-      .then(footIgoCopyOk)
-      .catch(footIgoCopyFail)
+      .then(footHaptic)
+      .catch(function(){})
       .finally(function(){ igoFetchPending=false; });
   }
   footBindDoubleHit(igoHit, footIgoCopy);

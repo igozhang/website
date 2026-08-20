@@ -183,7 +183,7 @@ kubectl -n igo rollout status deployment/igozhang
 ### 5.3 统一认证、运维页 `/ops`、看板与 SSH（`ssh.pass`）
 
 - **统一认证**：`/ops`、`/igoadmin`、`/fs` 及 `link.conf` **`[secret-auth]`** 文章共用「IGO密钥认证」（须 **`[auth] enabled=on`** 且 **`[igokey] enabled=on`**）。
-  - 取钥：访问 **`/igokey`** 取得 8 位字母 key（TTL 约 1h）。
+  - 取钥：页脚双击「专业化」静默复制，或读 **`secret07/igokey`**（TTL 约 1h）。**`/igokey` HTML 页已关闭**。
   - 登录：`POST /api/auth/login` → 内存会话 token（**刷新/重开须重新验证**，不保留 Cookie）。
   - 探活：`POST /api/auth/session`；业务 API 带 **`X-Igo-Token`** 或 body **`token`**。
 - **运维页入口**：直接访问 **`/ops`**（一级路径；无页脚按钮；仅须 **`[ops] enabled=on`**；关 ops **不影响** fs / igoadmin）。

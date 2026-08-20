@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -95,52 +96,44 @@ func TestIgokeyHTTPHandler_JSON(t *testing.T) {
 	}
 }
 
-func TestIgokeyHTTPHandler_HTMLClipboard(t *testing.T) {
+func TestIgokeyHTTPHandler_HTMLPageClosed(t *testing.T) {
+	igoKeyMu.Lock()
+	igoKeyStore = map[string]igoKeyEntry{}
+	igoKeyActive.key = ""
+	igoKeyMu.Unlock()
+
+	dir := t.TempDir()
 	mux := http.NewServeMux()
-	registerIgoKeyHandler(mux, t.TempDir())
-	req := httptest.NewRequest(http.MethodGet, "/igokey", nil)
+	registerIgoKeyHandler(mux, dir)
+	for _, path := range []string{"/igokey", "/igokey/", "/igokey?renew=1"} {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("%s status=%d want 404", path, rec.Code)
+		}
+		body := rec.Body.String()
+		if strings.Contains(body, "验证密钥已复制到剪贴板") || strings.Contains(body, `id="igoKey"`) {
+			t.Fatalf("%s should not serve igokey HTML: %s", path, body)
+		}
+	}
+	if _, err := os.Stat(igoKeyPlainPath(dir)); !os.IsNotExist(err) {
+		t.Fatal("HTML visit should not write secret07/igokey")
+	}
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-	body := rec.Body.String()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/igokey?format=plain", nil))
 	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d", rec.Code)
+		t.Fatalf("plain status=%d", rec.Code)
 	}
-	if !strings.Contains(body, "navigator.clipboard") {
-		t.Fatal("missing clipboard script")
+	key := strings.TrimSpace(rec.Body.String())
+	if len(key) != igoKeyLen {
+		t.Fatalf("plain key=%q", key)
 	}
-	if !strings.Contains(body, "验证密钥已复制到剪贴板") {
-		t.Fatal("missing toast copy hint")
-	}
-	if !strings.Contains(body, `id="btnIgoCopy"`) {
-		t.Fatal("missing copy button")
-	}
-	if !strings.Contains(body, `id="btnIgoRenew"`) {
-		t.Fatal("missing renew button")
-	}
-	if strings.Contains(body, `href="?renew=1"`) {
-		t.Fatal("renew must use absolute /igokey path, not ?renew=1 alone")
-	}
-	if !strings.Contains(body, `href="/igokey?renew=1"`) {
-		t.Fatal("missing renew href /igokey?renew=1")
-	}
-	if !strings.Contains(body, "var remainSec=") {
-		t.Fatal("missing remainSec for client-relative expiry display")
-	}
-	if !strings.Contains(body, `id="igoRemMin"`) {
-		t.Fatal("missing remaining minutes display")
-	}
-	if !strings.Contains(body, `class="site-head"`) {
-		t.Fatal("missing site header")
-	}
-	if !strings.Contains(body, `class="site-foot"`) {
-		t.Fatal("missing site footer")
-	}
-	if !strings.Contains(body, "image/svg+xml") {
-		t.Fatal("missing favicon in page head")
+	if got := readPlainIgoKeyFile(t, dir); got != key {
+		t.Fatalf("secret07/igokey=%q want %q", got, key)
 	}
 }
 
-func TestIgokeyHTTPHandler_RenewRedirectsToCleanURL(t *testing.T) {
+func TestIgokeyHTTPHandler_RenewJSON(t *testing.T) {
 	igoKeyMu.Lock()
 	igoKeyStore = map[string]igoKeyEntry{}
 	igoKeyActive.key = ""
@@ -151,40 +144,45 @@ func TestIgokeyHTTPHandler_RenewRedirectsToCleanURL(t *testing.T) {
 	registerIgoKeyHandler(mux, dir)
 
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/igokey", nil))
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/igokey?format=json", nil))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("initial status=%d", rec.Code)
 	}
-	k1 := extractIgoKeyFromHTML(rec.Body.String())
-	if k1 == "" {
-		t.Fatal("missing key in html")
+	var first struct {
+		Key string `json:"key"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &first); err != nil {
+		t.Fatal(err)
+	}
+	if first.Key == "" {
+		t.Fatal("missing key in json")
 	}
 
 	rec = httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/igokey?renew=1", nil))
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("renew status=%d want 303", rec.Code)
-	}
-	loc := rec.Header().Get("Location")
-	if loc != "/igokey" {
-		t.Fatalf("Location=%q want /igokey", loc)
-	}
-
-	rec = httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/igokey", nil))
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/igokey?renew=1&format=json", nil))
 	if rec.Code != http.StatusOK {
-		t.Fatalf("refresh status=%d", rec.Code)
+		t.Fatalf("renew status=%d want 200", rec.Code)
 	}
-	k2 := extractIgoKeyFromHTML(rec.Body.String())
-	if k2 == "" || k2 == k1 {
-		t.Fatalf("renew key=%q initial=%q", k2, k1)
+	var second struct {
+		Key string `json:"key"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &second); err != nil {
+		t.Fatal(err)
+	}
+	if second.Key == "" || second.Key == first.Key {
+		t.Fatalf("renew key=%q initial=%q", second.Key, first.Key)
 	}
 
 	rec = httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/igokey", nil))
-	k3 := extractIgoKeyFromHTML(rec.Body.String())
-	if k3 != k2 {
-		t.Fatalf("second refresh changed key: %q vs %q", k3, k2)
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/igokey?format=json", nil))
+	var third struct {
+		Key string `json:"key"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &third); err != nil {
+		t.Fatal(err)
+	}
+	if third.Key != second.Key {
+		t.Fatalf("second refresh changed key: %q vs %q", third.Key, second.Key)
 	}
 }
 
@@ -196,20 +194,6 @@ func TestIgokeyHTTPHandler_RenewJSONNoRedirect(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d", rec.Code)
 	}
-}
-
-func extractIgoKeyFromHTML(body string) string {
-	const pre = `<p class="key" id="igoKey" aria-label="验证密钥">`
-	i := strings.Index(body, pre)
-	if i < 0 {
-		return ""
-	}
-	rest := body[i+len(pre):]
-	j := strings.Index(rest, "</p>")
-	if j < 0 {
-		return ""
-	}
-	return strings.TrimSpace(rest[:j])
 }
 
 func TestObtainIgoKey_ReuseAndRenew(t *testing.T) {

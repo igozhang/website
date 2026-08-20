@@ -28,10 +28,19 @@ func TestSiteFootInit_safariIgoKeyCopy(t *testing.T) {
 		"footPrefetchIgoKey",
 		"igoKeyCache",
 		"document.execCommand(\"copy\")",
-		"footIgoCopyToast",
 	} {
 		if !strings.Contains(js, needle) {
 			t.Fatalf("site-foot-init.js missing %q", needle)
+		}
+	}
+	for _, banned := range []string{
+		"footIgoCopyToast",
+		"验证密钥已复制到剪贴板",
+		"无法自动复制",
+		"showToast",
+	} {
+		if strings.Contains(js, banned) {
+			t.Fatalf("site-foot-init.js should not prompt on copy: %q", banned)
 		}
 	}
 }

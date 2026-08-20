@@ -78,13 +78,13 @@
 - **站点名**：页眉站点链接与首页 **`<title>`** 由 **`igo.conf`** 的 **`[site] title`** 配置（`网站名 [短句]`，空格分隔；仅网站名时短句默认为 **Practice makes perfect**；默认网站名 **`igozhang`**）；修改后须 **重启 Pod** 生效。
 - **页眉 banner**：`secret07/banner.{png,jpg,jpeg}`（≤200KB）；蒙版强度 **`[site] banner_mask`**（0–100，默认 **66**；改 conf 须重启）。详见 **`cmd/igozhang/pic.readme.md`**。
 - **北京时间显示**：页眉时钟、文件列表时间等基于 **UTC+8**；若显示偏快/偏慢，可在 **`[site] beijing_offset_hours`** 用 **`±` 与 0–12** 修正（如快 1 小时设 **`-1`**，默认 **`0`** 不偏移）；仅影响展示，不改密钥校验用的服务器时钟。
-- **页面路径**：面向用户的子功能页使用**一级路径**（如 **`/fs`**（文件中转/暂存/浏览）、**`/gomoku`**、**`/zhijian`**、**`/mermaid`**、**`/igokey`**）；首页仅 **MP3** 模块，其它子页亦挂载 MP3 播放器。
+- **页面路径**：面向用户的子功能页使用**一级路径**（如 **`/fs`**（文件中转/暂存/浏览）、**`/gomoku`**、**`/zhijian`**、**`/mermaid`**）；首页仅 **MP3** 模块，其它子页亦挂载 MP3 播放器。**`/igokey` HTML 页已关闭**（404）。
 - **页脚**：五子棋（默认 **`/gomoku`**）、象棋（**`/xiangqi`**）、德扑（**`/texas`**）、知键、骰子动画、底部链接行等由 **`DATA_ROOT/secret07/igo.conf`** 配置（首次启动无文件时写入示例）；修改后须 **重启 Pod** 生效。
 
 ### 8. 统一密钥认证、运维与看板
 
 - **统一认证（Auth）**：`/ops`、`/igoadmin`、`/fs` 及 `link.conf` **`[secret-auth]`** 保护的文章共用同一套「IGO密钥认证」面板与会话（前端 `__igoAuthInit` / `ui/igo-auth.js`）。
-  - 取钥：`GET /igokey`（须 **`[igokey] enabled=on`**）。
+  - 取钥：双击页脚「专业化」静默复制（`GET /igokey?format=plain`）；当前有效 key 同步写入 **`secret07/igokey`**（无扩展名）。须 **`[igokey] enabled=on`**。**`GET /igokey` HTML 页已关闭**（404）。
   - 登录：`POST /api/auth/login`，body `{key}` → 内存 `token` + 剩余秒数（**不**返回 SSH targets；刷新页须重新验证，不写 Cookie / localStorage）。
   - 探活：`POST /api/auth/session`，body `{token}`。
   - 业务请求：请求头 **`X-Igo-Token`**（igoadmin / fs）或 JSON body **`token`**（ops）；401 时 `reason` 为 `invalid_token` / `key_expired` / `key_revoked`。
@@ -196,7 +196,7 @@
 | GET | `/texas-card-back.png` 等 | 德扑牌背图（`secret07/texas.*`，≤150K；无则前端 Canvas 绘制） |
 | GET | `/zhijian` | 知键打字练习页 |
 | GET | `/mermaid`、`/Mermaid` | Mermaid 源码编辑与即时预览 |
-| GET | `/igokey` | 签发 8 位字母验证密钥（**`igo.conf` `[igokey] enabled=on`**，默认开启；**`off`** 时返回 **404**）；剩余 **>15 分钟** 时刷新复用，`?renew=1` 强制重新生成 |
+| GET | `/igokey?format=plain` / `?format=json` | 签发或复用 8 位字母验证密钥（**`igo.conf` `[igokey] enabled=on`**，默认开启；**`off`** 时 404）；**无 format 的 HTML 页 404**。剩余 **>15 分钟** 时复用，`?renew=1` 强制重新生成；当前 key 写入 **`secret07/igokey`** |
 | GET | `/ops` | 运维页：统一认证后远程 Shell + 看板（**`[ops] enabled=on`**；认证另须 **`[auth]`+`[igokey]`**；Shell 须 **`ssh.pass`**） |
 | POST | `/api/auth/login` | 提交 `{key}` 验证 igokey，返回内存会话 `token`（刷新页须重新验证；ops / igoadmin / fs 共用） |
 | POST | `/api/auth/session` | `{token}` 续期检查 |
@@ -218,7 +218,7 @@
 | **`assets/mp3/`** | MP3 音频（体积大，独立备份；不进 ZIP） |
 | **`assets/eng/phrases.md`** | 页眉引语外部库（≥150 条有效行启用，否则内嵌） |
 | **`assets/eng/word3k-full.md`** | 知键词库外部库（≥50 条有效行启用，否则内嵌） |
-| **`secret07/igo.conf`** | 站点运维配置（见下） |
+| **`secret07/igokey`** | 当前有效验证密钥（纯文本、无扩展名；签发/轮换时更新） |
 | **`secret07/sqlitedb/doc.db`** | 文章 SQLite 索引（ZIP 导入时自动重建） |
 | **`secret07/ssh.pass`** | 运维 SSH 凭证 |
 | **`secret07/common-commands.md`** | 运维页常用命令（有生效行时随文章 ZIP 备份/恢复） |
@@ -236,7 +236,7 @@
 
 - **`igo.conf`**：INI 风格分段配置（站点名、暂存、中转、限流、日志、文章、MP3、知键、象棋、页脚链接等）。大小用 **`200K`/`9G`**，时长用 **`4s`/`12h`/`30m`** 等带单位写法。**修改后须重启 Pod**，运行中不热加载。**唯一源码**：**`cmd/igozhang/igo.conf`**（`go:embed` 内置）；改完后执行 **`go generate ./cmd/igozhang/...`** 同步到 **`deploy/secret07/igo.conf`**（测试会校验二者一致）。
 - **`[site]`**：`title`（`网站名 [短句]`，空格分隔；首页 `<title>` 用网站名）；`beijing_offset_hours`；`banner_mask`（页眉蒙版 0–100，默认 66）。
-- **`[igokey]`**：`enabled`（`on` / `off`，默认 **`on`**；`off` 时 **`/igokey`** 不可访问，且统一认证不可用）。
+- **`[igokey]`**：`enabled`（`on` / `off`，默认 **`on`**；`off` 时 **`/igokey?format=*`** 不可访问，且统一认证不可用）。**`GET /igokey` HTML 页始终 404**。
 - **`[auth]`**：`enabled`（`on` / `off`，默认 **`on`**）；与 **`[igokey]`** 同时为 on 时提供 **`/api/auth/login|session`** 与 token 守卫（**`/ops`、`/igoadmin`、`/fs` 共用**）。
 - **`[ops]`**：`enabled`（`on` / `off`，默认 **`on`**）；仅控制运维页 **`/ops`** 与 **`/api/ops/*`** 业务；登录仍走 **`[auth]`**；Shell 须 **`secret07/ssh.pass`**；验证后展示 Shell 与**看板**。
 - **`ssh.pass`**：每行 `主机 端口 用户名 密码`（最多 10 行/10 台；IPv4 可用 `10.1.1.2-5` 展开）；SSH 连接复用、空闲 5 分钟断开；运维会话绑定统一 Auth 的 **key** 过期时间（页内显示剩余分钟），刷新 `/ops` 须重新验证。
