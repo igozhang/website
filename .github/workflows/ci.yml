@@ -8,6 +8,8 @@ on:
 
 jobs:
   test:
+    # GitHub-hosted runners are overseas; use Go default proxy (not goproxy.cn).
+    # Local/China builds: export GOPROXY=https://goproxy.cn,direct
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -80,7 +80,14 @@ func TestIPBlacklistPersist(t *testing.T) {
 	if !strings.Contains(string(raw), "1.2.3.4") {
 		t.Fatalf("file=%q", raw)
 	}
-	if strings.HasPrefix(strings.TrimSpace(string(raw)), "[") {
+	trim := strings.TrimSpace(string(raw))
+	if !strings.HasPrefix(trim, "1.2.3.4") && !strings.HasPrefix(trim, "2001:db8::5") {
+		t.Fatalf("effective IPs should be at file head, got %q", trim)
+	}
+	if !strings.Contains(string(raw), "# === 说明与案例") {
+		t.Fatal("docs trailer missing")
+	}
+	if strings.HasPrefix(trim, "[") {
 		t.Fatal("should not be json")
 	}
 
@@ -103,7 +110,22 @@ func TestIPBlacklistPersist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(string(raw), "#") {
-		t.Fatal("empty list should keep comment template")
+	trim = strings.TrimSpace(string(raw))
+	if !strings.HasPrefix(trim, "2001:db8::5") {
+		t.Fatalf("remaining IP should stay at head, got %q", trim)
+	}
+	if !strings.Contains(string(raw), "# === 说明与案例") {
+		t.Fatal("docs trailer should remain after effective IPs")
+	}
+
+	if _, err := removeIPBlacklist(dir, "2001:db8::5"); err != nil {
+		t.Fatal(err)
+	}
+	raw, err = os.ReadFile(filepath.Join(secret07Dir(dir), ipBlacklistFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(strings.TrimSpace(string(raw)), "#") {
+		t.Fatal("empty list should keep comment-only template")
 	}
 }

@@ -15,30 +15,31 @@ const (
 	linkConfSecretAuthMax = 50
 )
 
-const secret07LinkConfTemplate = `# 首页与文章页右侧链接胶囊与密钥保护列表
+const secret07LinkConfTemplate = `[external]
+阿里镜像站 | https://developer.aliyun.com/mirror/
+
+[internal]
+chinesewedding
+
+[secret-auth]
+
+# === 说明与案例（均为注释，不生效；生效配置见文件头部）===
+# 首页与文章页右侧链接胶囊与密钥保护列表
 # [external]/[internal] 胶囊约 60s 缓存；[secret-auth] 每次请求读盘，改完即生效（无需重启）
 #
 # [external] 外链胶囊：无标题，一行一条，最多 5 条
 # 格式：显示文字 | URL（仅 http/https）
 # 以 # 开头的行不生效
 # 示例（不生效）：# 示例站 | https://example.com
-
-[external]
-阿里镜像站 | https://developer.aliyun.com/mirror/
-
+#
 # [internal] 内链胶囊：标题 TeaCpu，一行一个 slug，最多 5 条
 # 文章 slug：展示文章标题，链接 /slug
 # 站点页 slug：fs（文件）、gomoku、xiangqi、texas、zhijian、mermaid、ops 等，展示固定标题
 # 示例（不生效）：# example-slug
-
-[internal]
-chinesewedding
-
+#
 # [secret-auth] 需「IGO密钥认证」才能阅读的文章 slug（不展示胶囊，最多 50 条）
 # 一行一个文章 slug；访问 /slug 时先验证密钥，通过后才加载正文
 # 示例（不生效）：# private_notes
-
-[secret-auth]
 `
 
 type homeExternalLink struct {

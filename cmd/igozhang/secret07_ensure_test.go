@@ -65,3 +65,20 @@ func TestInitSecret07Files_idempotent(t *testing.T) {
 		t.Fatalf("should not overwrite existing file, got %q", raw)
 	}
 }
+
+func TestEnsureOpsConfigFile_restoresWhenNoEffective(t *testing.T) {
+	dir := t.TempDir()
+	initSecret07Files(dir)
+	p := opsConfigPath(dir)
+	if err := os.WriteFile(p, []byte("# empty igo.conf\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ensureOpsConfigFile(dir)
+	raw, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), "[site]") || !secret07HasEffectiveLines(raw) {
+		t.Fatalf("should restore full igo.conf, got %q", raw[:min(120, len(raw))])
+	}
+}

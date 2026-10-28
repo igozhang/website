@@ -50,6 +50,7 @@ Docker (BuildKit):
 
 ```bash
 DOCKER_BUILDKIT=1 docker build -t krccr.ccs.tencentyun.com/igokorea/igozhang:$(date +%Y%m%d-%H%M%S) .
+# Overseas builders: add --build-arg GOPROXY=https://proxy.golang.org,direct
 ```
 
 K8s manifests: `deploy/k8s/` (namespace `igo`, port **3003**, hostPath **`/data/igozhang.cn`**). Copy repo `assets/` onto the data volume on first deploy.

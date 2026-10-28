@@ -147,6 +147,9 @@ func TestInitSecret07Files_createsLinkConf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if !strings.HasPrefix(strings.TrimSpace(string(raw)), "[external]") {
+		t.Fatalf("effective config should start at head: %q", raw[:min(80, len(raw))])
+	}
 	if !strings.Contains(string(raw), "阿里镜像站") {
 		t.Fatal("link.conf missing default external")
 	}
@@ -155,6 +158,28 @@ func TestInitSecret07Files_createsLinkConf(t *testing.T) {
 	}
 	if !strings.Contains(string(raw), "[secret-auth]") {
 		t.Fatal("link.conf missing secret-auth section")
+	}
+	idxExt := strings.Index(string(raw), "[external]")
+	idxDoc := strings.Index(string(raw), "# === 说明与案例")
+	if idxExt < 0 || idxDoc < 0 || idxDoc < idxExt {
+		t.Fatal("docs trailer should follow effective sections")
+	}
+}
+
+func TestEnsureSecret07Config_restoresLinkConfWhenNoEffective(t *testing.T) {
+	dir := t.TempDir()
+	initSecret07Files(dir)
+	p := linkConfPath(dir)
+	if err := os.WriteFile(p, []byte("# only comments\n# no effective\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	initSecret07Files(dir)
+	raw, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), "阿里镜像站") {
+		t.Fatalf("should restore default link.conf, got %q", raw)
 	}
 }
 

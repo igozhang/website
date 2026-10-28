@@ -15,18 +15,64 @@ body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,s
 .mermaid-btn:hover{background:rgba(61,107,74,.1)}
 .mermaid-btn:active{transform:translateY(1px)}
 .mermaid-btn.is-active{border-color:var(--accent);background:rgba(61,107,74,.15)}
+.mermaid-btn:disabled{opacity:.55;cursor:not-allowed}
 .mermaid-workspace{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;align-items:stretch}
 .mermaid-pane{display:flex;flex-direction:column;gap:.35rem;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.55rem .65rem}
-.mermaid-pane label{font-size:.82rem;color:var(--muted);font-weight:600}
+.mermaid-pane-head{display:flex;align-items:center;justify-content:space-between;gap:.45rem;min-width:0}
+.mermaid-pane-head label{font-size:.82rem;color:var(--muted);font-weight:600;margin:0}
+.mermaid-pane-head .mermaid-btn{font-size:.76rem;padding:.22rem .55rem}
 .mermaid-src{flex:1 1 auto;width:100%;min-height:16rem;resize:vertical;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.82rem;line-height:1.45;padding:.45rem .55rem;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.45);color:var(--text)}
 .mermaid-src:focus{outline:2px solid rgba(61,107,74,.35);outline-offset:1px}
 .mermaid-preview{flex:1 1 auto;min-height:16rem;margin:0!important;padding:.35rem;background:rgba(255,255,255,.35);border:1px dashed var(--line);border-radius:8px;display:flex;align-items:flex-start;justify-content:center}
 .mermaid-preview:empty::before{content:"输入 Mermaid 源码后在此预览";color:var(--muted);font-size:.84rem;padding:1rem;text-align:center;width:100%}
 .mermaid-hint{font-size:.8rem;color:var(--muted);text-align:center;margin:.55rem 0 0;line-height:1.45}
+
+/* K8MAN-style right drawer */
+.mmd-drawer-backdrop{position:fixed;inset:0;background:rgba(45,59,45,.28);z-index:40}
+.mmd-drawer{
+  position:fixed;top:0;right:0;height:100%;width:min(880px,100%);
+  max-width:100%;min-width:min(420px,100%);
+  background:var(--bg);z-index:41;padding:16px;box-sizing:border-box;
+  box-shadow:-8px 0 24px rgba(45,59,45,.12);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.mmd-drawer[hidden],.mmd-drawer-backdrop[hidden]{display:none!important}
+.mmd-drawer-resize{
+  position:absolute;left:0;top:0;width:10px;height:100%;
+  cursor:ew-resize;z-index:3;touch-action:none;
+}
+.mmd-drawer-resize:hover,body.is-mmd-drawer-resizing .mmd-drawer-resize{background:rgba(45,59,45,.14)}
+body.is-mmd-drawer-resizing{cursor:ew-resize;user-select:none}
+body.is-mmd-drawer-open{overflow:hidden}
+.mmd-drawer-toolbar{
+  flex-shrink:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:.45rem .55rem;margin-bottom:8px;min-width:0;
+}
+.mmd-drawer-toolbar strong{
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:.95rem;color:var(--text);
+}
+.mmd-drawer-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;flex-shrink:0}
+.mmd-drawer-actions .mermaid-btn{font-size:.76rem;padding:.22rem .55rem;background:rgba(255,255,255,.45)}
+.mmd-drawer-zoom-label{
+  font-size:.76rem;color:var(--muted);min-width:3.2rem;text-align:center;font-variant-numeric:tabular-nums;
+}
+.mmd-drawer-scroll{
+  flex:1 1 auto;min-height:0;overflow:auto;
+  background:rgba(255,255,255,.45);border:1px solid var(--line);border-radius:8px;padding:.45rem;
+}
+.mmd-drawer-sizer{position:relative}
+.mmd-drawer-zoom{transform-origin:top left;will-change:transform}
+.mmd-drawer-preview{margin:0!important;padding:0;background:transparent;border:none;display:block;text-align:left}
+.mmd-drawer-preview.doc-mermaid-wrap svg{max-width:none!important;height:auto}
+.mmd-drawer-preview:empty::before{content:"暂无图表";color:var(--muted);font-size:.84rem;padding:1rem;display:block}
+.mmd-drawer-hint{flex-shrink:0;margin:.45rem 0 0;font-size:.76rem;color:var(--muted);line-height:1.35}
+
 @media (max-width:820px){
   .mermaid-workspace{grid-template-columns:1fr}
   .mermaid-src,.mermaid-preview{min-height:12rem}
   main.shell.fs-page-body{padding-left:.5rem;padding-right:.5rem}
+  .mmd-drawer{width:100%!important;min-width:0}
 }
 {{MERMAID_CSS}}
 {{SITE_HEAD_CSS}}
@@ -58,13 +104,41 @@ body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,s
   C --> D</textarea>
 </div>
 <div class="mermaid-pane">
+<div class="mermaid-pane-head">
 <label for="mermaidPreview">预览</label>
+<button type="button" class="mermaid-btn" id="btnMmdDrawer" title="在右侧大图预览中查看">大图预览</button>
+</div>
 <div id="mermaidPreview" class="mermaid-preview doc-mermaid-wrap" aria-live="polite"></div>
 </div>
 </div>
-<p class="mermaid-hint">选择示例模板快速开始，或点「自由」空白编写；修改源码后约 0.3 秒自动刷新预览。</p>
+<p class="mermaid-hint">选择示例模板快速开始，或点「自由」空白编写；修改源码后约 0.3 秒自动刷新预览。点「大图预览」可在右侧抽屉查看并缩放导出。</p>
 </section>
 </main>
+
+<div id="mmdDrawerBackdrop" class="mmd-drawer-backdrop" hidden></div>
+<aside id="mmdDrawer" class="mmd-drawer" hidden role="dialog" aria-modal="true" aria-labelledby="mmdDrawerTitle">
+  <div class="mmd-drawer-resize" id="mmdDrawerResize" title="拖拽调整宽度"></div>
+  <div class="mmd-drawer-toolbar">
+    <strong id="mmdDrawerTitle">大图预览</strong>
+    <div class="mmd-drawer-actions">
+      <button type="button" class="mermaid-btn" id="btnMmdZoomOut" title="缩小">−</button>
+      <span class="mmd-drawer-zoom-label" id="mmdZoomLabel" aria-live="polite">100%</span>
+      <button type="button" class="mermaid-btn" id="btnMmdZoomIn" title="放大">+</button>
+      <button type="button" class="mermaid-btn" id="btnMmdZoomFit" title="适应宽度">适应宽度</button>
+      <button type="button" class="mermaid-btn" id="btnMmdDrawerPng" title="导出为 PNG 图片">导出 PNG</button>
+      <button type="button" class="mermaid-btn" id="btnMmdDrawerClose">关闭</button>
+    </div>
+  </div>
+  <div class="mmd-drawer-scroll" id="mmdDrawerScroll">
+    <div class="mmd-drawer-sizer" id="mmdDrawerSizer">
+      <div class="mmd-drawer-zoom" id="mmdDrawerZoom">
+        <div id="mmdDrawerPreview" class="mmd-drawer-preview doc-mermaid-wrap" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+  <p class="mmd-drawer-hint">源码变更会自动同步到此大图；可拖拽左缘调整宽度。</p>
+</aside>
+
 {{SITE_SUBPAGE_TAIL}}
 {{MERMAID_SCRIPTS}}
 <script>
@@ -72,7 +146,24 @@ body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,s
   "use strict";
   var srcEl=document.getElementById("mermaidSrc");
   var previewEl=document.getElementById("mermaidPreview");
+  var drawerEl=document.getElementById("mmdDrawer");
+  var backdropEl=document.getElementById("mmdDrawerBackdrop");
+  var drawerPreviewEl=document.getElementById("mmdDrawerPreview");
+  var drawerScrollEl=document.getElementById("mmdDrawerScroll");
+  var drawerSizerEl=document.getElementById("mmdDrawerSizer");
+  var drawerZoomEl=document.getElementById("mmdDrawerZoom");
+  var zoomLabelEl=document.getElementById("mmdZoomLabel");
   var debounceTimer=null;
+  var drawerOpen=false;
+  var drawerRenderSeq=0;
+  var zoom=1;
+  // 0.05 so「适应宽度」能装下超宽 flowchart（仅 0.25 时大图无法真正贴宽）
+  var ZOOM_MIN=0.05;
+  var ZOOM_MAX=3;
+  var ZOOM_STEP=0.1;
+  var DRAWER_W_MIN=420;
+  var DRAWER_W_KEY="igo.mermaidDrawerPx";
+  var drawerWidth=880;
   var EXAMPLES={
     flowchart:"flowchart TB\n  A[开始] --> B{判断}\n  B -->|是| C[处理]\n  B -->|否| D[结束]\n  C --> D",
     sequence:"sequenceDiagram\n  participant A as 用户\n  participant B as 服务\n  A->>B: 请求\n  B-->>A: 响应",
@@ -100,7 +191,16 @@ body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,s
   }
   function doRender(){
     if(typeof renderMermaidSource!=="function") return;
-    renderMermaidSource(srcEl.value,previewEl);
+    var p=renderMermaidSource(srcEl.value,previewEl);
+    if(!drawerOpen) return;
+    var seq=++drawerRenderSeq;
+    Promise.resolve(p).then(function(){
+      if(!drawerOpen||seq!==drawerRenderSeq) return null;
+      return renderMermaidSource(srcEl.value,drawerPreviewEl);
+    }).then(function(){
+      if(!drawerOpen||seq!==drawerRenderSeq) return;
+      requestAnimationFrame(updateZoomLayout);
+    }).catch(function(){ /* renderMermaidSource 已在目标区展示错误 */ });
   }
   function waitAndRender(){
     var n=0;
@@ -140,25 +240,190 @@ body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,s
     srcEl.select();
     try{ document.execCommand("copy"); }catch(e){}
   }
-  function exportPng(){
-    var btn=document.getElementById("btnMmdPng");
-    if(btn) btn.disabled=true;
-    function done(){ if(btn){ btn.disabled=false; btn.textContent="导出 PNG"; } }
+  function exportPng(btn, previewRoot){
+    if(!btn) return;
+    btn.disabled=true;
+    var label=btn.getAttribute("data-label")||"导出 PNG";
+    function done(){ btn.disabled=false; btn.textContent=label; }
     if(typeof exportMermaidPngFromSource!=="function"){
       alert("导出功能未加载，请刷新页面后重试");
       done();
       return;
     }
-    if(btn) btn.textContent="导出中…";
-    exportMermaidPngFromSource(srcEl.value,"mermaid-"+Date.now()+".png",2,previewEl)
+    btn.textContent="导出中…";
+    exportMermaidPngFromSource(srcEl.value,"mermaid-"+Date.now()+".png",2,previewRoot||previewEl)
       .then(done)
       .catch(function(err){
         alert("导出失败："+(err&&err.message?err.message:String(err||"unknown")));
         done();
       });
   }
+
+  function drawerMinWidth(){
+    return Math.min(DRAWER_W_MIN, window.innerWidth);
+  }
+  function clampDrawerWidth(n){
+    return Math.min(window.innerWidth, Math.max(drawerMinWidth(), n));
+  }
+  function applyDrawerWidth(){
+    if(window.innerWidth<=820){
+      drawerEl.style.width="100%";
+      return;
+    }
+    drawerEl.style.width=clampDrawerWidth(drawerWidth)+"px";
+  }
+  function initDrawerWidth(){
+    try{
+      var n=Number(localStorage.getItem(DRAWER_W_KEY));
+      if(Number.isFinite(n) && n>=DRAWER_W_MIN){
+        drawerWidth=clampDrawerWidth(n);
+        applyDrawerWidth();
+        return;
+      }
+    }catch(e){}
+    drawerWidth=clampDrawerWidth(880);
+    applyDrawerWidth();
+  }
+  function stopDrawerResize(){
+    document.body.classList.remove("is-mmd-drawer-resizing");
+  }
+  function startDrawerResize(e){
+    if(window.innerWidth<=820) return;
+    if(typeof e.button==="number"&&e.button!==0) return;
+    var startX=e.clientX;
+    var startW=drawerEl.getBoundingClientRect().width;
+    var handle=e.currentTarget;
+    if(handle.setPointerCapture) handle.setPointerCapture(e.pointerId);
+    function onMove(ev){
+      drawerWidth=clampDrawerWidth(startW+(startX-ev.clientX));
+      applyDrawerWidth();
+      if(drawerOpen) requestAnimationFrame(updateZoomLayout);
+    }
+    function onUp(ev){
+      if(handle.releasePointerCapture) handle.releasePointerCapture(ev.pointerId);
+      handle.removeEventListener("pointermove",onMove);
+      handle.removeEventListener("pointerup",onUp);
+      handle.removeEventListener("pointercancel",onUp);
+      stopDrawerResize();
+      try{ localStorage.setItem(DRAWER_W_KEY,String(Math.round(drawerWidth))); }catch(err){}
+    }
+    document.body.classList.add("is-mmd-drawer-resizing");
+    handle.addEventListener("pointermove",onMove);
+    handle.addEventListener("pointerup",onUp);
+    handle.addEventListener("pointercancel",onUp);
+  }
+
+  function formatZoom(z){
+    return Math.round(z*100)+"%";
+  }
+  // Preview render uses useMaxWidth; pin absolute px so drawer zoom/scroll work.
+  function unlockDrawerSvgSize(){
+    var svg=drawerPreviewEl.querySelector("svg");
+    if(!svg) return;
+    var w=NaN,h=NaN;
+    var vbAttr=svg.getAttribute("viewBox");
+    if(vbAttr){
+      var parts=vbAttr.trim().split(/[\s,]+/);
+      if(parts.length===4){
+        w=parseFloat(parts[2]);
+        h=parseFloat(parts[3]);
+      }
+    }
+    if(!(w>0&&h>0)){
+      var vb=svg.viewBox&&svg.viewBox.baseVal;
+      if(vb&&vb.width>0&&vb.height>0){ w=vb.width; h=vb.height; }
+    }
+    if(!(w>0&&h>0)) return;
+    svg.setAttribute("width",String(w));
+    svg.setAttribute("height",String(h));
+    svg.style.maxWidth="none";
+    svg.style.width=w+"px";
+    svg.style.height=h+"px";
+  }
+  function measurePreviewSize(){
+    var svg=drawerPreviewEl.querySelector("svg");
+    if(svg){
+      var w=parseFloat(String(svg.getAttribute("width")||"").replace(/px$/i,""));
+      var h=parseFloat(String(svg.getAttribute("height")||"").replace(/px$/i,""));
+      if(w>0&&h>0&&!/%$/.test(String(svg.getAttribute("width")||""))) return {w:w,h:h};
+      var vb=svg.viewBox&&svg.viewBox.baseVal;
+      if(vb&&vb.width>0&&vb.height>0) return {w:vb.width,h:vb.height};
+    }
+    return {
+      w:drawerPreviewEl.scrollWidth||drawerPreviewEl.offsetWidth||0,
+      h:drawerPreviewEl.scrollHeight||drawerPreviewEl.offsetHeight||0
+    };
+  }
+  function updateZoomLayout(){
+    if(!drawerOpen) return;
+    unlockDrawerSvgSize();
+    drawerZoomEl.style.transform="scale("+zoom+")";
+    drawerZoomEl.style.transformOrigin="top left";
+    zoomLabelEl.textContent=formatZoom(zoom);
+    var size=measurePreviewSize();
+    var w=Math.max(1,Math.ceil((size.w||1)*zoom));
+    var h=Math.max(1,Math.ceil((size.h||1)*zoom));
+    drawerSizerEl.style.width=w+"px";
+    drawerSizerEl.style.height=h+"px";
+  }
+  function setZoom(next){
+    var z=Math.min(ZOOM_MAX,Math.max(ZOOM_MIN,next));
+    zoom=Math.round(z*100)/100;
+    updateZoomLayout();
+  }
+  function fitZoomWidth(){
+    unlockDrawerSvgSize();
+    var size=measurePreviewSize();
+    if(!(size.w>0)){ setZoom(1); return; }
+    var avail=Math.max(40, drawerScrollEl.clientWidth-8);
+    setZoom(avail/size.w);
+  }
+
+  function openDrawer(){
+    if(drawerOpen) return;
+    drawerOpen=true;
+    initDrawerWidth();
+    backdropEl.hidden=false;
+    drawerEl.hidden=false;
+    document.body.classList.add("is-mmd-drawer-open");
+    zoom=1;
+    var seq=++drawerRenderSeq;
+    if(typeof renderMermaidSource==="function"){
+      Promise.resolve(renderMermaidSource(srcEl.value,drawerPreviewEl)).then(function(){
+        if(!drawerOpen||seq!==drawerRenderSeq) return;
+        requestAnimationFrame(function(){
+          if(!drawerOpen||seq!==drawerRenderSeq) return;
+          updateZoomLayout();
+          fitZoomWidth();
+        });
+      }).catch(function(){ /* 错误已写入抽屉预览区 */ });
+    }else{
+      updateZoomLayout();
+    }
+    var closeBtn=document.getElementById("btnMmdDrawerClose");
+    if(closeBtn) closeBtn.focus();
+  }
+  function closeDrawer(){
+    if(!drawerOpen) return;
+    drawerOpen=false;
+    drawerRenderSeq+=1;
+    backdropEl.hidden=true;
+    drawerEl.hidden=true;
+    document.body.classList.remove("is-mmd-drawer-open");
+    stopDrawerResize();
+    drawerPreviewEl.innerHTML="";
+    drawerSizerEl.style.width="";
+    drawerSizerEl.style.height="";
+    drawerZoomEl.style.transform="";
+    zoom=1;
+    zoomLabelEl.textContent="100%";
+  }
+
   srcEl.addEventListener("input",onSrcInput);
-  document.getElementById("btnMmdPng").addEventListener("click",exportPng);
+  document.getElementById("btnMmdPng").setAttribute("data-label","导出 PNG");
+  document.getElementById("btnMmdPng").addEventListener("click",function(){
+    exportPng(document.getElementById("btnMmdPng"),previewEl);
+  });
   document.getElementById("btnMmdCopy").addEventListener("click",copySrc);
   document.getElementById("btnMmdClear").addEventListener("click",function(){ setExample("flowchart"); });
   document.querySelectorAll("[data-mmd-example]").forEach(function(btn){
@@ -166,6 +431,34 @@ body{margin:0;width:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,s
       setExample(btn.getAttribute("data-mmd-example"));
     });
   });
+
+  document.getElementById("btnMmdDrawer").addEventListener("click",openDrawer);
+  document.getElementById("btnMmdDrawerClose").addEventListener("click",closeDrawer);
+  backdropEl.addEventListener("click",closeDrawer);
+  document.getElementById("mmdDrawerResize").addEventListener("pointerdown",function(e){
+    e.preventDefault();
+    startDrawerResize(e);
+  });
+  document.getElementById("btnMmdDrawerPng").setAttribute("data-label","导出 PNG");
+  document.getElementById("btnMmdDrawerPng").addEventListener("click",function(){
+    exportPng(document.getElementById("btnMmdDrawerPng"),drawerPreviewEl);
+  });
+  document.getElementById("btnMmdZoomIn").addEventListener("click",function(){ setZoom(zoom+ZOOM_STEP); });
+  document.getElementById("btnMmdZoomOut").addEventListener("click",function(){ setZoom(zoom-ZOOM_STEP); });
+  document.getElementById("btnMmdZoomFit").addEventListener("click",fitZoomWidth);
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape"&&drawerOpen){
+      e.preventDefault();
+      closeDrawer();
+    }
+  });
+  window.addEventListener("resize",function(){
+    if(!drawerOpen) return;
+    applyDrawerWidth();
+    requestAnimationFrame(updateZoomLayout);
+  });
+
+  initDrawerWidth();
   waitAndRender();
 })();
 </script>

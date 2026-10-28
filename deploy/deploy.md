@@ -60,7 +60,7 @@
 
 ## 3. 构建与推送镜像
 
-在项目根目录（含 `Dockerfile`）执行。Dockerfile 使用 BuildKit cache mount（`GOCACHE` / module cache），**请开启 BuildKit**（Docker 23+ 默认开启；旧版：`export DOCKER_BUILDKIT=1`）。二次构建在依赖未变时通常明显快于全量编译。
+在项目根目录（含 `Dockerfile`）执行。Dockerfile 使用 BuildKit cache mount（`GOCACHE` / module cache），**请开启 BuildKit**（Docker 23+ 默认开启；旧版：`export DOCKER_BUILDKIT=1`）。二次构建在依赖未变时通常明显快于全量编译。镜像默认 `GOPROXY=https://goproxy.cn,direct`（国内构建）；**构建机在海外**时请加 `--build-arg GOPROXY=https://proxy.golang.org,direct`，避免走国内镜像导致慢或失败。
 
 每次构建同时打 **时间戳 TAG** 与 **`:latest`**，并**两个都推送**。线上滚动仍建议用带时间戳的 TAG（回滚明确）；`:latest` 便于仓库里始终能拉到最近一次构建。
 

@@ -10,7 +10,9 @@ import (
 
 const ipWhitelistFile = "ip-whitelist.conf"
 
-const ipWhitelistFileTemplate = `# IP 白名单：每行一个 IPv4/IPv6；也支持逗号、空格、分号、- 分隔多个 IP
+// ipWhitelistFileTemplate 为尾部说明；生效 IP 写在文件头部（formatIPWhitelistFile 负责拼接）。
+const ipWhitelistFileTemplate = `# === 说明与案例（均为注释，不生效；生效 IP 写在文件头部）===
+# IP 白名单：每行一个 IPv4/IPv6；也支持逗号、空格、分号、- 分隔多个 IP
 # 以 # 开头为注释；仅精确 IP，不支持 CIDR
 # 仅对 /ops、/igoadmin、/fs 及 /api/auth/* 生效；列表非空时，仅白名单内 IP 可访问（否则 403）
 # 不限制首页、文章、/files 直链、MP3 流等
@@ -69,11 +71,14 @@ func loadIPWhitelistLocked(dataRoot string) {
 
 func formatIPWhitelistFile(ips []string) []byte {
 	var b strings.Builder
-	b.WriteString(ipWhitelistFileTemplate)
 	for _, ip := range ips {
 		b.WriteString(ip)
 		b.WriteByte('\n')
 	}
+	if len(ips) > 0 {
+		b.WriteByte('\n')
+	}
+	b.WriteString(ipWhitelistFileTemplate)
 	return []byte(b.String())
 }
 

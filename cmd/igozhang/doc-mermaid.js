@@ -26,13 +26,18 @@
     };
   }
 
+  // Export canvas longest-edge cap (browsers often fail past ~8k–16k).
+  var EXPORT_MAX_EDGE = 8192;
+
   function mermaidBaseConfig(forExport) {
+    // Preview: fit pane + HTML labels. Export: absolute px; labels still sanitized for XML.
+    var forPreview = !forExport;
     return {
       startOnLoad: false,
       theme: "base",
       securityLevel: "strict",
-      flowchart: { useMaxWidth: true, htmlLabels: !forExport },
-      sequence: { useMaxWidth: true },
+      flowchart: { useMaxWidth: forPreview, htmlLabels: forPreview },
+      sequence: { useMaxWidth: forPreview },
       themeVariables: mermaidThemeVariables(),
     };
   }
@@ -183,56 +188,118 @@
       });
   }
 
+  function parseSvgLengthAttr(raw) {
+    if (raw == null || raw === "") return NaN;
+    var s = String(raw).trim();
+    if (!s || /%$/.test(s) || /^auto$/i.test(s)) return NaN;
+    return parseFloat(s.replace(/px$/i, ""));
+  }
+
+  function sizeFromViewBoxAttr(vbAttr) {
+    if (!vbAttr) return null;
+    var parts = String(vbAttr).trim().split(/[\s,]+/);
+    if (parts.length !== 4) return null;
+    var vbW = parseFloat(parts[2]);
+    var vbH = parseFloat(parts[3]);
+    if (vbW > 0 && vbH > 0) return { w: vbW, h: vbH };
+    return null;
+  }
+
+  function svgExportSizeFromAttrs(viewBox, widthAttr, heightAttr) {
+    var fromVb = sizeFromViewBoxAttr(viewBox);
+    if (fromVb) return fromVb;
+    var w = parseSvgLengthAttr(widthAttr);
+    var h = parseSvgLengthAttr(heightAttr);
+    if (w > 0 && h > 0) return { w: w, h: h };
+    return null;
+  }
+
+  // Prefer intrinsic size (viewBox / px attrs). Display rect is CSS-shrunk and poor for PNG.
   function svgExportSizeFromNode(svg) {
     if (!svg) return null;
+    var fromAttrs = svgExportSizeFromAttrs(
+      svg.getAttribute && svg.getAttribute("viewBox"),
+      svg.getAttribute && svg.getAttribute("width"),
+      svg.getAttribute && svg.getAttribute("height")
+    );
+    if (fromAttrs) return fromAttrs;
+    var vb = svg.viewBox && svg.viewBox.baseVal;
+    if (vb && vb.width > 0 && vb.height > 0) {
+      return { w: vb.width, h: vb.height };
+    }
     if (svg.getBoundingClientRect) {
       var rect = svg.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         return { w: rect.width, h: rect.height };
       }
     }
-    var vb = svg.viewBox && svg.viewBox.baseVal;
-    if (vb && vb.width > 0 && vb.height > 0) {
-      return { w: vb.width, h: vb.height };
-    }
-    var vbAttr = svg.getAttribute("viewBox");
-    if (vbAttr) {
-      var parts = vbAttr.trim().split(/[\s,]+/);
-      if (parts.length === 4) {
-        var vbW = parseFloat(parts[2]);
-        var vbH = parseFloat(parts[3]);
-        if (vbW > 0 && vbH > 0) {
-          return { w: vbW, h: vbH };
-        }
-      }
-    }
-    var w = parseFloat(String(svg.getAttribute("width") || "").replace(/px$/i, ""));
-    var h = parseFloat(String(svg.getAttribute("height") || "").replace(/px$/i, ""));
-    if (w > 0 && h > 0) {
-      return { w: w, h: h };
-    }
     return null;
   }
 
+  function svgExportSizeFromStringRegex(svgString) {
+    if (!svgString) return null;
+    var head = String(svgString).slice(0, 2500);
+    var vbM = head.match(/\bviewBox\s*=\s*["']([^"']+)["']/i);
+    var wM = head.match(/\bwidth\s*=\s*["']([^"']+)["']/i);
+    var hM = head.match(/\bheight\s*=\s*["']([^"']+)["']/i);
+    return svgExportSizeFromAttrs(vbM && vbM[1], wM && wM[1], hM && hM[1]);
+  }
+
   function svgExportSizeFromString(svgString) {
+    var fromRegex = svgExportSizeFromStringRegex(svgString);
+    if (fromRegex) return fromRegex;
     try {
-      var doc = new DOMParser().parseFromString(svgString, "image/svg+xml");
+      var sanitized = sanitizeSvgForExport(svgString);
+      var doc = new DOMParser().parseFromString(sanitized, "image/svg+xml");
+      if (doc.querySelector("parsererror")) return null;
       var svg = doc.documentElement;
-      if (!svg || svg.nodeName.toLowerCase() !== "svg") {
-        return null;
-      }
+      if (!svg || svg.nodeName.toLowerCase() !== "svg") return null;
       return svgExportSizeFromNode(svg);
     } catch (e) {
       return null;
     }
   }
 
-  function normalizeSvgString(svgString) {
+  // Mermaid foreignObject often emits HTML void tags (<br>) which break image/svg+xml.
+  function sanitizeSvgForExport(svgString) {
     var out = svgString || "";
+    out = out.replace(/<(br|hr|img|input|meta|link|source|area|base|col|embed|wbr)(\s[^>/]*)?\/?>/gi, function (_, tag, attrs) {
+      return "<" + tag + (attrs || "") + "/>";
+    });
     if (!/xmlns=/.test(out)) {
-      out = out.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+      out = out.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
     }
     return out;
+  }
+
+  function normalizeSvgString(svgString) {
+    return sanitizeSvgForExport(svgString);
+  }
+
+  function clampExportScale(size, scale) {
+    scale = scale || 2;
+    if (!size || !(size.w > 0) || !(size.h > 0)) return 1;
+    if (!(scale > 0)) scale = 1;
+    var maxDim = Math.max(size.w, size.h);
+    var maxScale = EXPORT_MAX_EDGE / maxDim;
+    if (!(maxScale > 0)) return 1;
+    // Never raise scale above maxScale (a floor would break the edge cap on huge diagrams).
+    if (scale > maxScale) scale = maxScale;
+    return scale;
+  }
+
+  function exportCanvasPixelSize(size, scale) {
+    var s = clampExportScale(size, scale);
+    var w = Math.max(1, Math.ceil(size.w * s));
+    var h = Math.max(1, Math.ceil(size.h * s));
+    // ceil() can nudge 1px past the cap; keep aspect by scaling both down if needed.
+    var edge = Math.max(w, h);
+    if (edge > EXPORT_MAX_EDGE) {
+      var f = EXPORT_MAX_EDGE / edge;
+      w = Math.max(1, Math.floor(w * f));
+      h = Math.max(1, Math.floor(h * f));
+    }
+    return { w: w, h: h, scale: s };
   }
 
   function canvasToPngBlob(canvas) {
@@ -306,54 +373,31 @@
     });
   }
 
-  function buildExportCanvas(svg, scale) {
-    var size = svgExportSizeFromNode(svg);
-    if (!size) {
-      throw new Error("无法确定图表尺寸");
-    }
-    scale = scale || 2;
-    var w = Math.max(1, Math.ceil(size.w * scale));
-    var h = Math.max(1, Math.ceil(size.h * scale));
-    var canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    var ctx = canvas.getContext("2d");
-    if (!ctx) {
-      throw new Error("Canvas 不可用");
-    }
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(svg, 0, 0, w, h);
-    return canvas;
-  }
-
   function drawSvgStringToCanvas(svgString, scale) {
     var size = svgExportSizeFromString(svgString);
     if (!size) {
       return Promise.reject(new Error("无法确定图表尺寸"));
     }
-    scale = scale || 2;
-    var w = Math.max(1, Math.ceil(size.w * scale));
-    var h = Math.max(1, Math.ceil(size.h * scale));
+    var pix = exportCanvasPixelSize(size, scale || 2);
     var canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = pix.w;
+    canvas.height = pix.h;
     var ctx = canvas.getContext("2d");
     if (!ctx) {
       return Promise.reject(new Error("Canvas 不可用"));
     }
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0, 0, pix.w, pix.h);
     svgString = normalizeSvgString(svgString);
     return new Promise(function (resolve, reject) {
       var img = new Image();
       var timer = setTimeout(function () {
         reject(new Error("SVG 渲染超时"));
-      }, 12000);
+      }, 20000);
       img.onload = function () {
         clearTimeout(timer);
         try {
-          ctx.drawImage(img, 0, 0, w, h);
+          ctx.drawImage(img, 0, 0, pix.w, pix.h);
           resolve(canvas);
         } catch (err) {
           reject(err);
@@ -365,6 +409,16 @@
       };
       img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
     });
+  }
+
+  function svgElementToExportString(svg) {
+    if (!svg) return "";
+    try {
+      if (typeof XMLSerializer !== "undefined") {
+        return sanitizeSvgForExport(new XMLSerializer().serializeToString(svg));
+      }
+    } catch (e) {}
+    return sanitizeSvgForExport(svg.outerHTML || "");
   }
 
   function renderMermaidSvgForExport(text) {
@@ -384,18 +438,13 @@
         if (!svg) {
           throw new Error("empty svg");
         }
-        return svg;
+        return sanitizeSvgForExport(svg);
       },
       function (err) {
         configureMermaid(false);
         throw err;
       }
     );
-  }
-
-  function trySyncDomExport(svg, scale, filename) {
-    var canvas = buildExportCanvas(svg, scale);
-    downloadCanvasPngSync(canvas, filename);
   }
 
   function exportMermaidPngFromSource(text, filename, scale, previewRoot) {
@@ -421,12 +470,18 @@
         if (!svg) {
           throw err;
         }
-        try {
-          trySyncDomExport(svg, scale, filename);
-          return;
-        } catch (e2) {
+        var previewSvg = svgElementToExportString(svg);
+        if (!previewSvg) {
           throw err;
         }
+        return drawSvgStringToCanvas(previewSvg, scale)
+          .then(function (canvas) {
+            return downloadCanvasPng(canvas, filename);
+          })
+          .catch(function (e2) {
+            // Prefer the fallback failure; it is what actually blocked the last attempt.
+            throw e2 || err;
+          });
       });
   }
 
@@ -441,12 +496,13 @@
     }
     scale = scale || 2;
     filename = filename || "mermaid-" + Date.now() + ".png";
-    try {
-      trySyncDomExport(svg, scale, filename);
-      return Promise.resolve();
-    } catch (e) {
-      return Promise.reject(e);
+    var svgString = svgElementToExportString(svg);
+    if (!svgString) {
+      return Promise.reject(new Error("无法序列化图表"));
     }
+    return drawSvgStringToCanvas(svgString, scale).then(function (canvas) {
+      return downloadCanvasPng(canvas, filename);
+    });
   }
 
   global.initDocMermaid = initDocMermaid;
@@ -455,6 +511,9 @@
   global.exportMermaidPngFromPreview = exportMermaidPngFromPreview;
   global.__igoCollectMermaidBlocks = collectMermaidBlocks;
   global.__igoIsMermaidBlock = isMermaidBlock;
+  global.__igoSanitizeSvgForExport = sanitizeSvgForExport;
+  global.__igoSvgExportSizeFromString = svgExportSizeFromString;
+  global.__igoClampExportScale = clampExportScale;
 
   document.addEventListener("DOMContentLoaded", function () {
     function run() {

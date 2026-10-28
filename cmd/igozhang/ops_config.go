@@ -331,12 +331,14 @@ func initOpsConfig(dataRoot string) {
 
 func ensureOpsConfigFile(dataRoot string) {
 	p := opsConfigPath(dataRoot)
-	if _, err := os.Stat(p); err == nil {
+	if raw, err := os.ReadFile(p); err == nil && secret07HasEffectiveLines(raw) {
 		return
 	}
 	if err := os.WriteFile(p, opsConfigExample, 0o644); err != nil {
 		log.Printf("ops-config: write example %s: %v", p, err)
+		return
 	}
+	log.Printf("ops-config: created %s (edit on server as needed)", p)
 }
 
 func loadOpsConfig(dataRoot string) error {

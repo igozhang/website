@@ -12,6 +12,13 @@ func TestMermaidPage_embedded(t *testing.T) {
 	for _, frag := range []string{
 		"id=\"mermaidSrc\"",
 		"id=\"mermaidPreview\"",
+		"id=\"mmdDrawer\"",
+		"id=\"btnMmdDrawer\"",
+		"大图预览",
+		"btnMmdDrawerPng",
+		"btnMmdZoomFit",
+		"igo.mermaidDrawerPx",
+		"is-mmd-drawer-open",
 		"renderMermaidSource",
 		"data-mmd-example",
 		"{{MERMAID_CSS}}",
@@ -28,6 +35,8 @@ func TestRenderMermaidPageHTML(t *testing.T) {
 	for _, frag := range []string{
 		"Mermaid 预览",
 		"id=\"mermaidSrc\"",
+		"id=\"mmdDrawer\"",
+		"大图预览",
 		"/assets/doc/mermaid.min.js",
 		"/assets/doc/mermaid.js",
 		".doc-mermaid-wrap",

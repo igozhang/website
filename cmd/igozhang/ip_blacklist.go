@@ -13,7 +13,9 @@ import (
 
 const ipBlacklistFile = "ip-blacklist.conf"
 
-const ipBlacklistFileTemplate = `# IP 黑名单：每行一个 IPv4/IPv6；也支持逗号、空格、分号、- 分隔多个 IP
+// ipBlacklistFileTemplate 为尾部说明；生效 IP 写在文件头部（formatIPBlacklistFile 负责拼接）。
+const ipBlacklistFileTemplate = `# === 说明与案例（均为注释，不生效；生效 IP 写在文件头部）===
+# IP 黑名单：每行一个 IPv4/IPv6；也支持逗号、空格、分号、- 分隔多个 IP
 # 以 # 开头为注释；仅精确 IP，不支持 CIDR；命中后全站返回 403
 # 示例：203.0.113.50
 # 示例：1.2.3.4, 5.6.7.8
@@ -141,11 +143,14 @@ func normalizeBlacklistIPList(in []string) []string {
 
 func formatIPBlacklistFile(ips []string) []byte {
 	var b strings.Builder
-	b.WriteString(ipBlacklistFileTemplate)
 	for _, ip := range ips {
 		b.WriteString(ip)
 		b.WriteByte('\n')
 	}
+	if len(ips) > 0 {
+		b.WriteByte('\n')
+	}
+	b.WriteString(ipBlacklistFileTemplate)
 	return []byte(b.String())
 }
 

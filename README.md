@@ -296,6 +296,7 @@ Dockerfile 使用 BuildKit 缓存挂载，请开启 BuildKit：
 
 ```bash
 DOCKER_BUILDKIT=1 docker build -t krccr.ccs.tencentyun.com/igokorea/igozhang:$(date +%Y%m%d-%H%M%S) .
+# 海外构建机：追加 --build-arg GOPROXY=https://proxy.golang.org,direct
 ```
 
 镜像仓库、Kubernetes、Ingress（TLS）、宝塔 Nginx 反代等步骤见 **[deploy/deploy.md](deploy/deploy.md)**；不变量与发版自检见 **[checklist.md](checklist.md)**。镜像**不含** `assets/`：首次请把仓库 `assets/` 同步到宿主机 **`/data/igozhang.cn/assets/`**。
